@@ -1,0 +1,25 @@
+#!/bin/sh
+
+echo "Killing all other Java process and waiting for 3 seconds"
+pkill -9 java
+sleep 3
+
+echo "Changing the zwave serial port permission to be owned by " `whoami`
+sudo chown `whoami` /dev/ttyACM0
+
+echo "Running the program as " `whoami`
+if [ "x$AHOME" = "x" ]; then
+    AHOME=`dirname $0`/..
+fi
+if [ "x$CONF" = "x" ]; then
+    CONF=$AHOME/conf
+fi
+
+CLASSPATH=$CONF:$athena_bin
+for jar in $AHOME/lib/*.jar; do
+    CLASSPATH=$CLASSPATH:$jar
+done
+
+DEBUG="-Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=1417"
+ 
+exec java $DEBUG -cp $CLASSPATH com.automaton.server.StartAutomationHub "$@" <&- &
