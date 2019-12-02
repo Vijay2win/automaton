@@ -1,70 +1,62 @@
 package com.automaton.pairing;
 
-import com.automaton.pairing.PairSetupRequest.Stage;
-import com.automaton.pairing.PairingManager.MessageType;
-import com.automaton.pairing.TypeLengthValueUtils.DecodeResult;
-
 abstract class PairVerificationRequest {
-    private final static short VALUE_STAGE_1 = 1;
-    private final static short VALUE_STAGE_2 = 3;
+    private static final short VALUE_STAGE_1 = 1;
+    private static final short VALUE_STAGE_2 = 3;
 
     static PairVerificationRequest of(byte[] content) throws Exception {
-        DecodeResult d = TypeLengthValueUtils.decode(content);
-        short stage = d.getByte(MessageType.STATE);
+        TypeLengthValueUtils.DecodeResult d = TypeLengthValueUtils.decode(content);
+        short stage = (short) d.getByte(PairingManager.MessageType.STATE);
         switch (stage) {
-        case VALUE_STAGE_1:
+        case 1:
             return new Stage1Request(d);
 
-        case VALUE_STAGE_2:
+        case 3:
             return new Stage2Request(d);
-
-        default:
-            throw new Exception("Unknown pair process stage: " + stage);
         }
+
+        throw new Exception("Unknown pair process stage: " + stage);
     }
 
-    abstract Stage getStage();
+    abstract PairSetupRequest.Stage getStage();
 
     static class Stage1Request extends PairVerificationRequest {
         private final byte[] clientPublicKey;
 
-        public Stage1Request(DecodeResult d) {
-            clientPublicKey = d.getBytes(MessageType.PUBLIC_KEY);
+        public Stage1Request(TypeLengthValueUtils.DecodeResult d) {
+            this.clientPublicKey = d.getBytes(PairingManager.MessageType.PUBLIC_KEY);
         }
 
         public byte[] getClientPublicKey() {
-            return clientPublicKey;
+            return this.clientPublicKey;
         }
 
-        @Override
-        Stage getStage() {
-            return Stage.ONE;
+        PairSetupRequest.Stage getStage() {
+            return PairSetupRequest.Stage.ONE;
         }
-
     }
 
     static class Stage2Request extends PairVerificationRequest {
         private final byte[] messageData;
         private final byte[] authTagData;
 
-        public Stage2Request(DecodeResult d) {
-            messageData = new byte[d.getLength(MessageType.ENCRYPTED_DATA) - 16];
-            authTagData = new byte[16];
-            d.getBytes(MessageType.ENCRYPTED_DATA, messageData, 0);
-            d.getBytes(MessageType.ENCRYPTED_DATA, authTagData, messageData.length);
+        public Stage2Request(TypeLengthValueUtils.DecodeResult d) {
+            this.messageData = new byte[d.getLength(PairingManager.MessageType.ENCRYPTED_DATA) - 16];
+            this.authTagData = new byte[16];
+            d.getBytes(PairingManager.MessageType.ENCRYPTED_DATA, this.messageData, 0);
+            d.getBytes(PairingManager.MessageType.ENCRYPTED_DATA, this.authTagData, this.messageData.length);
         }
 
         public byte[] getMessageData() {
-            return messageData;
+            return this.messageData;
         }
 
         public byte[] getAuthTagData() {
-            return authTagData;
+            return this.authTagData;
         }
 
-        @Override
-        public Stage getStage() {
-            return Stage.TWO;
+        public PairSetupRequest.Stage getStage() {
+            return PairSetupRequest.Stage.TWO;
         }
     }
 }

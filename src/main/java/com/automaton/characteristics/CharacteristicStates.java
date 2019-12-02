@@ -5,13 +5,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.automaton.accessories.*;
-import com.automaton.accessories.LockMechanism.LockMechanismState;
-import com.automaton.accessories.LockMechanism.LockableLockMechanism;
-import com.automaton.accessories.SecuritySystem.CurrentSecuritySystemState;
-import com.automaton.accessories.SecuritySystem.TargetSecuritySystemState;
-import com.automaton.accessories.SmokeSensor.SmokeDetectedState;
-import com.automaton.accessories.TemperatureSensor.Thermostats;
-import com.automaton.characteristics.AbstractCharacteristic.BooleanCharacteristic;
 import com.automaton.utils.ExceptionalConsumer;
 
 public class CharacteristicStates {
@@ -23,24 +16,19 @@ public class CharacteristicStates {
             this.lock = lock;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Not writable
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return lock.getState().thenApply(s -> s.getCode());
+            return this.lock.getState().thenApply(s -> Integer.valueOf(s.getCode()));
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            lock.subscribe(callback);
+            this.lock.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            lock.unsubscribe();
+            this.lock.unsubscribe();
         }
     }
 
@@ -52,34 +40,31 @@ public class CharacteristicStates {
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Read only
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getPositionState().thenApply(v -> v.getCode());
+            return this.windowCovering.getPositionState().thenApply(v -> Integer.valueOf(v.getCode()));
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribePositionState(callback);
+            this.windowCovering.subscribePositionState(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribePositionState();
+            this.windowCovering.unsubscribePositionState();
         }
     }
 
-    public static class PowerState extends BooleanCharacteristic implements EventableCharacteristic {
+    public static class PowerState extends AbstractCharacteristic.BooleanCharacteristic
+            implements EventableCharacteristic {
         private final Supplier<CompletableFuture<Boolean>> getter;
         private final ExceptionalConsumer<Boolean> setter;
         private final Consumer<CharacteristicCallback> subscriber;
         private final Runnable unsubscriber;
 
-        public PowerState(Supplier<CompletableFuture<Boolean>> getter, ExceptionalConsumer<Boolean> setter, Consumer<CharacteristicCallback> subscriber, Runnable unsubscriber) {
+        public PowerState(Supplier<CompletableFuture<Boolean>> getter, ExceptionalConsumer<Boolean> setter,
+                Consumer<CharacteristicCallback> subscriber, Runnable unsubscriber) {
             super("00000025-0000-1000-8000-0026BB765291", true, true, "Turn on and off");
             this.getter = getter;
             this.setter = setter;
@@ -87,24 +72,20 @@ public class CharacteristicStates {
             this.unsubscriber = unsubscriber;
         }
 
-        @Override
         public void setValue(Boolean value) throws Exception {
-            setter.accept(value);
+            this.setter.accept(value);
         }
 
-        @Override
         protected CompletableFuture<Boolean> getValue() {
-            return getter.get();
+            return this.getter.get();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            subscriber.accept(callback);
+            this.subscriber.accept(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            unsubscriber.run();
+            this.unsubscriber.run();
         }
     }
 
@@ -116,24 +97,20 @@ public class CharacteristicStates {
             this.securitySystem = securitySystem;
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return securitySystem.getCurrentSecuritySystemState().thenApply(CurrentSecuritySystemState::getCode);
+            return this.securitySystem.getCurrentSecuritySystemState()
+                    .thenApply(SecuritySystem.CurrentSecuritySystemState::getCode);
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Not writable
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            securitySystem.subscribeCurrentSecuritySystemState(callback);
+            this.securitySystem.subscribeCurrentSecuritySystemState(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            securitySystem.unsubscribeCurrentSecuritySystemState();
+            this.securitySystem.unsubscribeCurrentSecuritySystemState();
         }
     }
 
@@ -145,57 +122,49 @@ public class CharacteristicStates {
             this.smokeSensor = smokeSensor;
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return smokeSensor.getSmokeDetectedState().thenApply(SmokeDetectedState::getCode);
+            return this.smokeSensor.getSmokeDetectedState().thenApply(SmokeSensor.SmokeDetectedState::getCode);
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Read Only
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            smokeSensor.subscribe(callback);
+            this.smokeSensor.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            smokeSensor.unsubscribe();
+            this.smokeSensor.unsubscribe();
         }
     }
 
     public static class TargetLockState extends AbstractEnumCharacteristic implements EventableCharacteristic {
-        private final LockableLockMechanism lock;
+        private final LockMechanism.LockableLockMechanism lock;
 
-        public TargetLockState(LockableLockMechanism lock) {
+        public TargetLockState(LockMechanism.LockableLockMechanism lock) {
             super("0000001E-0000-1000-8000-0026BB765291", true, true, "Current lock state", 3);
             this.lock = lock;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            lock.setTargetMechanismState(LockMechanismState.fromCode(value));
+            this.lock.setTargetMechanismState(LockMechanism.LockMechanismState.fromCode(value));
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return lock.getTargetMechanismState().thenApply(s -> s.getCode());
+            return this.lock.getTargetMechanismState().thenApply(s -> Integer.valueOf(s.getCode()));
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            lock.subscribe(callback);
+            this.lock.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            lock.unsubscribe();
+            this.lock.unsubscribe();
         }
     }
 
-    public static class TargetSecuritySystemStateCharacteristic extends AbstractEnumCharacteristic implements EventableCharacteristic {
+    public static class TargetSecuritySystemStateCharacteristic extends AbstractEnumCharacteristic
+            implements EventableCharacteristic {
         private final SecuritySystem securitySystem;
 
         public TargetSecuritySystemStateCharacteristic(SecuritySystem securitySystem) {
@@ -203,43 +172,37 @@ public class CharacteristicStates {
             this.securitySystem = securitySystem;
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return securitySystem.getTargetSecuritySystemState().thenApply(TargetSecuritySystemState::getCode);
+            return this.securitySystem.getTargetSecuritySystemState()
+                    .thenApply(SecuritySystem.TargetSecuritySystemState::getCode);
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            securitySystem.setTargetSecuritySystemState(TargetSecuritySystemState.fromCode(value));
+            this.securitySystem.setTargetSecuritySystemState(SecuritySystem.TargetSecuritySystemState.fromCode(value));
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            securitySystem.subscribeTargetSecuritySystemState(callback);
+            this.securitySystem.subscribeTargetSecuritySystemState(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            securitySystem.unsubscribeTargetSecuritySystemState();
+            this.securitySystem.unsubscribeTargetSecuritySystemState();
         }
     }
 
     public static class TemperatureUnit extends AbstractEnumCharacteristic {
-        private final Thermostats thermostat;
+        private final TemperatureSensor.Thermostats thermostat;
 
-        public TemperatureUnit(Thermostats thermostat) {
+        public TemperatureUnit(TemperatureSensor.Thermostats thermostat) {
             super("00000036-0000-1000-8000-0026BB765291", false, true, "The temperature unit", 1);
             this.thermostat = thermostat;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Not writable
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return CompletableFuture.completedFuture(thermostat.getTemperatureUnit().getCode());
+            return CompletableFuture.completedFuture(Integer.valueOf(this.thermostat.getTemperatureUnit().getCode()));
         }
     }
 }

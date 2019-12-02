@@ -3,23 +3,16 @@ package com.automaton.characteristics;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.json.*;
-import javax.json.JsonValue.ValueType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.automaton.accessories.*;
 
-/**
- * Base class for implementing {@link Characteristic}.
- *
- * @author Andy Lintner
- */
 public abstract class AbstractCharacteristic<T> implements Characteristic {
     private final Logger logger = LoggerFactory.getLogger(AbstractCharacteristic.class);
 
@@ -30,10 +23,11 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
     private final boolean isEventable;
     private final String description;
 
-    public AbstractCharacteristic(String type, String format, boolean isWritable, boolean isReadable, String description) {
-        if (type == null || format == null || description == null)
+    public AbstractCharacteristic(String type, String format, boolean isWritable, boolean isReadable,
+            String description) {
+        if (type == null || format == null || description == null) {
             throw new NullPointerException();
-
+        }
         this.type = type;
         this.format = format;
         this.isWritable = isWritable;
@@ -42,59 +36,56 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
         this.description = description;
     }
 
-    @Override
     public final CompletableFuture<JsonObject> toJson(int iid) {
         return makeBuilder(iid).thenApply(builder -> builder.build());
     }
 
     protected CompletableFuture<JsonObjectBuilder> makeBuilder(int instanceId) {
         return getValue().exceptionally(t -> {
-            logger.error("Could not retrieve value " + this.getClass().getName(), t);
+            this.logger.error("Could not retrieve value " + getClass().getName(), t);
             return null;
         }).thenApply(value -> {
             JsonArrayBuilder perms = Json.createArrayBuilder();
-            if (isWritable) {
+            if (this.isWritable) {
                 perms.add("pw");
             }
-            if (isReadable) {
+            if (this.isReadable) {
                 perms.add("pr");
             }
-            if (isEventable) {
+            if (this.isEventable) {
                 perms.add("ev");
             }
-            JsonObjectBuilder builder = Json.createObjectBuilder().add("iid", instanceId).add("type", type).add("perms", perms.build()).add("format", format).add("events", false).add("bonjour", false)
-                    .add("description", description);
-            setJsonValue(builder, value);
+
+            JsonObjectBuilder builder = Json.createObjectBuilder().add("iid", instanceId).add("type", this.type)
+                    .add("perms", (JsonValue) perms.build()).add("format", this.format).add("events", false)
+                    .add("bonjour", false).add("description", this.description);
+            setJsonValue(builder, (T) value);
             return builder;
         });
     }
 
-    @Override
     public final void setValue(JsonValue jsonValue) {
         try {
-            this.setValue(convert(jsonValue));
+            setValue(convert(jsonValue));
         } catch (Exception e) {
-            logger.error("Error while setting JSON value", e);
+            this.logger.error("Error while setting JSON value", e);
         }
     }
 
-    @Override
     public void supplyValue(JsonObjectBuilder builder) {
         try {
             setJsonValue(builder, getValue().get());
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Error retrieving value", e);
+        } catch (InterruptedException | java.util.concurrent.ExecutionException e) {
+            this.logger.error("Error retrieving value", e);
             setJsonValue(builder, getDefault());
         }
     }
 
-    protected abstract T convert(JsonValue jsonValue);
-    protected abstract void setValue(T value) throws Exception;
-    protected abstract CompletableFuture<T> getValue();
-    protected abstract T getDefault();
+    protected abstract T convert(JsonValue paramJsonValue);
+
+    protected abstract void setValue(T paramT) throws Exception;
 
     protected void setJsonValue(JsonObjectBuilder builder, T value) {
-        // I don't like this - there should really be a way to construct a disconnected JSONValue...
         if (value instanceof Boolean) {
             builder.add("value", (Boolean) value);
         } else if (value instanceof Double) {
@@ -107,12 +98,15 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
             builder.add("value", (BigInteger) value);
         } else if (value instanceof BigDecimal) {
             builder.add("value", (BigDecimal) value);
-        } else if (value == null) {
-            // Do not add null value, HomeKit cannot handle that
-        } else {
+        } else if (value != null) {
             builder.add("value", value.toString());
         }
+        // Do not add null value, HomeKit cannot handle that
     }
+
+    protected abstract CompletableFuture<T> getValue();
+
+    protected abstract T getDefault();
 
     public static abstract class BooleanCharacteristic extends AbstractCharacteristic<Boolean> {
         public BooleanCharacteristic(String type, boolean isWritable, boolean isReadable, String description) {
@@ -120,7 +114,7 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
         }
 
         protected Boolean convert(JsonValue jsonValue) {
-            if (jsonValue.getValueType().equals(ValueType.NUMBER))
+            if (jsonValue.getValueType().equals(JsonValue.ValueType.NUMBER))
                 return ((JsonNumber) jsonValue).intValue() > 0;
             return jsonValue.equals(JsonValue.TRUE);
         }
@@ -150,14 +144,14 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
         private Accessory accessory;
 
         public Identify(Accessory accessory) throws Exception {
-            super("00000014-0000-1000-8000-0026BB765291", "Identifies the accessory via a physical action on the accessory");
+            super("00000014-0000-1000-8000-0026BB765291",
+                    "Identifies the accessory via a physical action on the accessory");
             this.accessory = accessory;
         }
 
-        @Override
         public void setValue(Boolean value) throws Exception {
             if (value)
-                accessory.identify();
+                this.accessory.identify();
         }
     }
 
@@ -169,12 +163,10 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Boolean value) throws Exception {
             this.windowCovering.setHoldPosition(value);
         }
 
-        @Override
         protected CompletableFuture<Boolean> getValue() {
             // Write only
             return CompletableFuture.completedFuture(null);
@@ -213,7 +205,8 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
         private final Consumer<CharacteristicCallback> subscriber;
         private final Runnable unsubscriber;
 
-        public ObstructionDetected(Supplier<CompletableFuture<Boolean>> getter, Consumer<CharacteristicCallback> subscriber, Runnable unsubscriber) {
+        public ObstructionDetected(Supplier<CompletableFuture<Boolean>> getter,
+                Consumer<CharacteristicCallback> subscriber, Runnable unsubscriber) {
             super("00000024-0000-1000-8000-0026BB765291", false, true, "An obstruction has been detected");
             this.getter = getter;
             this.subscriber = subscriber;
@@ -222,7 +215,6 @@ public abstract class AbstractCharacteristic<T> implements Characteristic {
 
         @Override
         protected void setValue(Boolean value) throws Exception {
-            // Read Only
         }
 
         @Override

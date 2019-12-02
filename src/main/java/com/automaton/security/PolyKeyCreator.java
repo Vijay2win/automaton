@@ -1,31 +1,30 @@
 package com.automaton.security;
 
+import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.macs.Poly1305;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.util.Pack;
 
 class PolyKeyCreator {
-
     public static byte[] create(KeyParameter macKey, byte[] additionalData, byte[] ciphertext) {
+        byte[] additionalDataLength;
         Poly1305 poly = new Poly1305();
-        poly.init(macKey);
+        poly.init((CipherParameters) macKey);
 
         if (additionalData != null) {
             poly.update(additionalData, 0, additionalData.length);
             if (additionalData.length % 16 != 0) {
-                int round = 16 - (additionalData.length % 16);
+                int round = 16 - additionalData.length % 16;
                 poly.update(new byte[round], 0, round);
             }
         }
 
         poly.update(ciphertext, 0, ciphertext.length);
         if (ciphertext.length % 16 != 0) {
-            int round = 16 - (ciphertext.length % 16);
+            int round = 16 - ciphertext.length % 16;
             poly.update(new byte[round], 0, round);
         }
 
-        // additional data length
-        byte[] additionalDataLength;
         if (additionalData != null) {
             additionalDataLength = Pack.longToLittleEndian(additionalData.length);
         } else {

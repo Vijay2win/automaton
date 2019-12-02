@@ -144,13 +144,16 @@ public class HttpResponses {
     }
 
     public static FullHttpResponse createResponse(HttpResponse homekitResponse) {
-        FullHttpResponse response = new DefaultFullHttpResponse(homekitResponse.getVersion() == HttpResponse.HttpVersion.EVENT_1_0 ? EVENT_VERSION : HttpVersion.HTTP_1_1,
-                HttpResponseStatus.valueOf(homekitResponse.getStatusCode()), Unpooled.copiedBuffer(homekitResponse.getBody()));
-        HttpHeaders headers = response.headers();
+        DefaultFullHttpResponse defaultFullHttpResponse = new DefaultFullHttpResponse(
+                (homekitResponse.getVersion() == HttpResponse.HttpVersion.EVENT_1_0) ? EVENT_VERSION
+                        : HttpVersion.HTTP_1_1,
+                HttpResponseStatus.valueOf(homekitResponse.getStatusCode()),
+                Unpooled.copiedBuffer(homekitResponse.getBody()));
         for (Entry<String, String> header : homekitResponse.getHeaders().entrySet())
-            headers.add(header.getKey(), header.getValue());
-        headers.set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes())
-               .set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-        return response;
+            defaultFullHttpResponse.headers().add(header.getKey(), header.getValue());
+        defaultFullHttpResponse.headers().set("Content-Length",
+                Integer.valueOf(defaultFullHttpResponse.content().readableBytes()));
+        defaultFullHttpResponse.headers().set("Connection", "keep-alive");
+        return defaultFullHttpResponse;
     }
 }

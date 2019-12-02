@@ -2,42 +2,37 @@ package com.automaton.pairing;
 
 import java.math.BigInteger;
 
-import com.automaton.pairing.PairingManager.MessageType;
-import com.automaton.pairing.TypeLengthValueUtils.DecodeResult;
-
 abstract class PairSetupRequest {
+    private static final short VALUE_STAGE_1 = 1;
+    private static final short VALUE_STAGE_2 = 3;
+    private static final short VALUE_STAGE_3 = 5;
+
     public enum Stage {
-        ONE, TWO, THREE
+        ONE, TWO, THREE;
     }
 
-    private final static short VALUE_STAGE_1 = 1;
-    private final static short VALUE_STAGE_2 = 3;
-    private final static short VALUE_STAGE_3 = 5;
-
     public static PairSetupRequest of(byte[] content) throws Exception {
-        DecodeResult d = TypeLengthValueUtils.decode(content);
-        short stage = d.getByte(MessageType.STATE);
+        TypeLengthValueUtils.DecodeResult d = TypeLengthValueUtils.decode(content);
+        short stage = (short) d.getByte(PairingManager.MessageType.STATE);
         switch (stage) {
-        case VALUE_STAGE_1:
+        case 1:
             return new Stage1Request();
 
-        case VALUE_STAGE_2:
+        case 3:
             return new Stage2Request(d);
 
-        case VALUE_STAGE_3:
+        case 5:
             return new Stage3Request(d);
-
-        default:
-            throw new Exception("Unknown pair process stage: " + stage);
         }
+
+        throw new Exception("Unknown pair process stage: " + stage);
     }
 
     public abstract Stage getStage();
 
     public static class Stage1Request extends PairSetupRequest {
-        @Override
-        public Stage getStage() {
-            return Stage.ONE;
+        public PairSetupRequest.Stage getStage() {
+            return PairSetupRequest.Stage.ONE;
         }
     }
 
@@ -45,22 +40,21 @@ abstract class PairSetupRequest {
         private final BigInteger a;
         private final BigInteger m1;
 
-        public Stage2Request(DecodeResult d) {
-            a = d.getBigInt(MessageType.PUBLIC_KEY);
-            m1 = d.getBigInt(MessageType.PROOF);
+        public Stage2Request(TypeLengthValueUtils.DecodeResult d) {
+            this.a = d.getBigInt(PairingManager.MessageType.PUBLIC_KEY);
+            this.m1 = d.getBigInt(PairingManager.MessageType.PROOF);
         }
 
         public BigInteger getA() {
-            return a;
+            return this.a;
         }
 
         public BigInteger getM1() {
-            return m1;
+            return this.m1;
         }
 
-        @Override
-        public Stage getStage() {
-            return Stage.TWO;
+        public PairSetupRequest.Stage getStage() {
+            return PairSetupRequest.Stage.TWO;
         }
     }
 
@@ -68,24 +62,23 @@ abstract class PairSetupRequest {
         private final byte[] messageData;
         private final byte[] authTagData;
 
-        public Stage3Request(DecodeResult d) {
-            messageData = new byte[d.getLength(MessageType.ENCRYPTED_DATA) - 16];
-            authTagData = new byte[16];
-            d.getBytes(MessageType.ENCRYPTED_DATA, messageData, 0);
-            d.getBytes(MessageType.ENCRYPTED_DATA, authTagData, messageData.length);
+        public Stage3Request(TypeLengthValueUtils.DecodeResult d) {
+            this.messageData = new byte[d.getLength(PairingManager.MessageType.ENCRYPTED_DATA) - 16];
+            this.authTagData = new byte[16];
+            d.getBytes(PairingManager.MessageType.ENCRYPTED_DATA, this.messageData, 0);
+            d.getBytes(PairingManager.MessageType.ENCRYPTED_DATA, this.authTagData, this.messageData.length);
         }
 
         public byte[] getMessageData() {
-            return messageData;
+            return this.messageData;
         }
 
         public byte[] getAuthTagData() {
-            return authTagData;
+            return this.authTagData;
         }
 
-        @Override
-        public Stage getStage() {
-            return Stage.THREE;
+        public PairSetupRequest.Stage getStage() {
+            return PairSetupRequest.Stage.THREE;
         }
     }
 }

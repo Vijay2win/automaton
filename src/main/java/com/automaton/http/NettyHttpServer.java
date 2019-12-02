@@ -17,52 +17,54 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.*;
 
 public class NettyHttpServer {
     private static final Logger logger = LoggerFactory.getLogger(NettyHttpServer.class);
-    private static final int MAX_POST = 1000000;
-    public static final String HTTP_HANDLER_NAME = "http";
 
+    private static final int MAX_POST = 1000000;
+
+    public static final String HTTP_HANDLER_NAME = "http";
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
+    private final ChannelGroup allChannels = (ChannelGroup) new DefaultChannelGroup(
+            (EventExecutor) GlobalEventExecutor.INSTANCE);
 
-    private final ChannelGroup allChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     private final int port;
     private final int nThreads;
-
     private NettyHttpServer service = null;
 
     public NettyHttpServer(int port, int nThreads) {
-        bossGroup = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
+        this.bossGroup = (EventLoopGroup) new NioEventLoopGroup();
+        this.workerGroup = (EventLoopGroup) new NioEventLoopGroup();
         this.port = port;
         this.nThreads = nThreads;
     }
 
     public CompletableFuture<Integer> create(HomekitConnectionFactory connectionFactory) {
-        final CompletableFuture<Integer> portFuture = new CompletableFuture<Integer>();
+        final CompletableFuture<Integer> portFuture = new CompletableFuture<>();
         ServerBootstrap b = new ServerBootstrap();
-        b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).handler(new LoggingHandler(LogLevel.INFO)).childHandler(new ServerInitializer(connectionFactory, allChannels, nThreads))
-                .option(ChannelOption.SO_BACKLOG, 128).childOption(ChannelOption.SO_KEEPALIVE, true);
-        final ChannelFuture bindFuture = b.bind(port);
+        ((ServerBootstrap) ((ServerBootstrap) ((ServerBootstrap) b.group(this.bossGroup, this.workerGroup)
+                .channel(NioServerSocketChannel.class)).handler((ChannelHandler) new LoggingHandler(LogLevel.INFO)))
+                        .childHandler((ChannelHandler) new ServerInitializer(connectionFactory, this.allChannels,
+                                this.nThreads))
+                        .option(ChannelOption.SO_BACKLOG, Integer.valueOf(128))).childOption(ChannelOption.SO_KEEPALIVE,
+                                Boolean.valueOf(true));
+        final ChannelFuture bindFuture = b.bind(this.port);
         bindFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
-
-            @Override
             public void operationComplete(Future<? super Void> future) throws Exception {
                 try {
                     future.get();
                     SocketAddress socketAddress = bindFuture.channel().localAddress();
                     if (socketAddress instanceof InetSocketAddress) {
                         logger.info("Bound homekit listener to " + socketAddress.toString());
-                        portFuture.complete(((InetSocketAddress) socketAddress).getPort());
+                        portFuture.complete(Integer.valueOf(((InetSocketAddress) socketAddress).getPort()));
                     } else {
-                        throw new RuntimeException("Unknown socket address type: " + socketAddress.getClass().getName());
+                        throw new RuntimeException(
+                                "Unknown socket address type: " + socketAddress.getClass().getName());
                     }
                 } catch (Exception e) {
                     portFuture.completeExceptionally(e);
@@ -80,37 +82,37 @@ public class NettyHttpServer {
         public ServerInitializer(HomekitConnectionFactory homekit, ChannelGroup allChannels, int nThreads) {
             this.homekit = homekit;
             this.allChannels = allChannels;
-            this.blockingExecutorGroup = new DefaultEventExecutorGroup(nThreads);
+            this.blockingExecutorGroup = (EventExecutorGroup) new DefaultEventExecutorGroup(nThreads);
         }
 
-        @Override
         protected void initChannel(SocketChannel ch) throws Exception {
             ChannelPipeline pipeline = ch.pipeline();
-            pipeline.addLast(new LoggingHandler());
-            pipeline.addLast(HTTP_HANDLER_NAME, new AggregateResponseEncoder());
-            pipeline.addLast(new HttpRequestDecoder());
-            pipeline.addLast(new HttpObjectAggregator(MAX_POST));
-            pipeline.addLast(blockingExecutorGroup, new AccessoryHandler(homekit));
-            allChannels.add(ch);
+            pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new LoggingHandler() });
+            pipeline.addLast("http", (ChannelHandler) new NettyHttpServer.AggregateResponseEncoder());
+            pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new HttpRequestDecoder() });
+            pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new HttpObjectAggregator(1000000) });
+            pipeline.addLast(this.blockingExecutorGroup,
+                    new ChannelHandler[] { (ChannelHandler) new AccessoryHandler(this.homekit) });
+            this.allChannels.add(ch);
         }
     }
 
     public CompletableFuture<Integer> start(HomekitConnectionFactory clientConnectionFactory) {
-        if (service == null) {
-            service = NettyHttpServer.create(port, nThreads);
-            return service.create(clientConnectionFactory);
+        if (this.service == null) {
+            this.service = create(this.port, this.nThreads);
+            return this.service.create(clientConnectionFactory);
         }
         throw new RuntimeException("HomekitHttpServer can only be started once");
     }
 
     public void shutdown() {
-        workerGroup.shutdownGracefully();
-        bossGroup.shutdownGracefully();
+        this.workerGroup.shutdownGracefully();
+        this.bossGroup.shutdownGracefully();
     }
 
     public void resetConnections() {
         logger.info("Resetting connections");
-        allChannels.close();
+        this.allChannels.close();
     }
 
     public static NettyHttpServer create(int port, int nThreads) {
@@ -118,7 +120,6 @@ public class NettyHttpServer {
     }
 
     public static class AggregateResponseEncoder extends HttpResponseEncoder {
-        @Override
         protected void encode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {
             super.encode(ctx, msg, out);
             if (out.size() > 0) {

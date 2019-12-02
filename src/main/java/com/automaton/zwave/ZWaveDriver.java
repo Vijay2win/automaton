@@ -1,27 +1,23 @@
 package com.automaton.zwave;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.automaton.HomekitRoot;
+import com.automaton.accessories.Accessory;
 import com.automaton.characteristics.CharacteristicCallback;
 import com.automaton.server.AutomatonConfiguration;
 import com.automaton.server.DeviceDriver;
-import com.automaton.zwave.AbstractZSwitch.ZOnOffSwitch;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.oberasoftware.home.zwave.api.LocalZwaveSession;
 import com.oberasoftware.home.zwave.api.ZWaveSession;
-import com.oberasoftware.home.zwave.api.actions.DeviceManufactorAction;
-import com.oberasoftware.home.zwave.api.actions.IdentifyNodeAction;
-import com.oberasoftware.home.zwave.api.actions.SwitchAction;
-import com.oberasoftware.home.zwave.api.actions.SwitchAction.STATE;
+import com.oberasoftware.home.zwave.api.actions.*;
+import com.oberasoftware.home.zwave.api.events.NodeIdentifyEvent;
 import com.oberasoftware.home.zwave.api.messages.types.CommandClass;
+import com.oberasoftware.home.zwave.api.messages.types.GenericDeviceClass;
 import com.oberasoftware.home.zwave.core.NodeAvailability;
 import com.oberasoftware.home.zwave.core.ZWaveNode;
 
@@ -33,82 +29,77 @@ public class ZWaveDriver implements DeviceDriver {
     public ZWaveDriver(HomekitRoot bridge) {
         this.bridge = bridge;
         logger.info("Trying to intialize z-wave network");
-        this.session = new LocalZwaveSession().connect();
+        this.session = (ZWaveSession) (new LocalZwaveSession()).connect();
     }
 
     public void initializeZWave() throws Exception {
-        while (!session.isNetworkReady()) {
+        while (!this.session.isNetworkReady()) {
             logger.info("ZWave Network not ready yet, sleeping");
-            sleepUninterruptibly(1, TimeUnit.SECONDS);
+            Uninterruptibles.sleepUninterruptibly(1L, TimeUnit.SECONDS);
         }
 
         logger.info("ZWave Network is ready");
-        sleepUninterruptibly(5, SECONDS);
+        Uninterruptibles.sleepUninterruptibly(5L, TimeUnit.SECONDS);
 
-        List<ZWaveNode> nodes = session.getDeviceManager().getNodes().stream()
-                .map(node -> initialize(node))
-                .filter(node -> node.getNodeInformation().isPresent())
-                .collect(Collectors.toList());
+        for (ZWaveNode node : this.session.getDeviceManager().getNodes()) {
+            node = initialize(node);
 
-        nodes.forEach(node -> {
-            String name = AutomatonConfiguration.getString("device.name." + node.getNodeId(), "z-wave," + node.getNodeId());
-            switch (node.getNodeInformation().get().getGenericDeviceClass()) {
-            case BINARY_SWITCH:
-                ZOnOffSwitch ooSwitch = new ZOnOffSwitch(node.getNodeId(), name);
-                ooSwitch.subscribe(callback(ooSwitch, session));
-                bridge.addAccessory(ooSwitch);
-                break;
-            case MULTILEVEL_SWITCH:
+            int id = node.getNodeId();
+            String name = AutomatonConfiguration.getString("device.name." + id, "z-wave," + node.getNodeId());
+            Optional<NodeIdentifyEvent> nodeInfo = node.getNodeInformation();
+
+            if (nodeInfo.isPresent() && ((NodeIdentifyEvent) nodeInfo.get())
+                    .getGenericDeviceClass() == GenericDeviceClass.MULTILEVEL_SWITCH) {
                 ZDimmableSwitch dimmable = new ZDimmableSwitch(node.getNodeId(), name);
-                dimmable.subscribe(callback(dimmable, session));
-                bridge.addAccessory(dimmable);
-                break;
-            default:
-                logger.info("Device type unknown: {}", node.getNodeId());
+                dimmable.subscribe(callback(dimmable, this.session));
+                this.bridge.addAccessory((Accessory) dimmable);
+            } else if (nodeInfo.isPresent() && ((NodeIdentifyEvent) nodeInfo.get())
+                    .getGenericDeviceClass() == GenericDeviceClass.BINARY_SWITCH) {
+                AbstractZSwitch.ZOnOffSwitch ooSwitch = new AbstractZSwitch.ZOnOffSwitch(node.getNodeId(), name);
+                ooSwitch.subscribe(callback(ooSwitch, this.session));
+                this.bridge.addAccessory((Accessory) ooSwitch);
             }
-        });
+            logger.info("node properties {}", node.getNodeProperties());
+        }
     }
 
-    private ZWaveNode initialize(ZWaveNode node) {
-        try {
-            while (node.getAvailability() != NodeAvailability.AVAILABLE) {
-                int nodeId = node.getNodeId();
-                session.getDeviceManager().registerCommandClass(nodeId, CommandClass.ALL);
-                session.doAction(new DeviceManufactorAction(nodeId));
-                session.doAction(new IdentifyNodeAction(nodeId));
-                session.getDeviceManager().setNodeAvailability(nodeId, NodeAvailability.AVAILABLE);
+    private ZWaveNode initialize(ZWaveNode node) throws Exception {
+        while (node.getAvailability() != NodeAvailability.AVAILABLE) {
+            int nodeId = node.getNodeId();
+            this.session.getDeviceManager().registerCommandClass(nodeId, CommandClass.ALL);
+            this.session.doAction((ZWaveAction) new DeviceManufactorAction(nodeId));
+            this.session.doAction((ZWaveAction) new IdentifyNodeAction(nodeId));
+            this.session.getDeviceManager().setNodeAvailability(nodeId, NodeAvailability.AVAILABLE);
 
-                logger.info("Node.toString() -> {}, hence sleeping for 1 Second.", node);
-                sleepUninterruptibly(1, TimeUnit.SECONDS);
+            logger.info("Node.toString() -> {}, hence sleeping for 1 Second.", node);
+            Uninterruptibles.sleepUninterruptibly(1L, TimeUnit.SECONDS);
 
-                node = session.getDeviceManager().getNode(node.getNodeId());
-            }
-        } catch (Exception ex) {
-            logger.error("Exception in initializing the node {}", node);
+            node = this.session.getDeviceManager().getNode(node.getNodeId());
         }
         logger.info("Node.toString() -> {}", node);
-        logger.info("Node.getNodeProperties() {}", node.getNodeProperties());
         return node;
     }
 
-    public static CharacteristicCallback callback(ZDimmableSwitch sw, ZWaveSession session) {
+    public static CharacteristicCallback callback(final ZDimmableSwitch sw, final ZWaveSession session) {
         return new CharacteristicCallback() {
             public void changed() {
                 ZWaveNode node = session.getDeviceManager().getNode(sw.getId());
                 try {
                     if (!sw.powerState) {
-                        session.doAction(new SwitchAction(node.getNodeId(), 0, STATE.ON, 0));
+                        session.doAction((ZWaveAction) new SwitchAction(node.getNodeId(), 0, SwitchAction.STATE.ON, 0));
+
                         return;
                     }
-
-                    if (sw.brightness == 0)
-                        sw.brightness = 20;
-                    if (sw.brightness == 100)
-                        sw.brightness = 99;
-
-                    session.doAction(new SwitchAction(node.getNodeId(), 0, STATE.ON, sw.brightness));
+                    if (sw.brightness.intValue() == 0)
+                        sw.brightness = Integer.valueOf(20);
+                    if (sw.brightness.intValue() == 100) {
+                        sw.brightness = Integer.valueOf(99);
+                    }
+                    session.doAction((ZWaveAction) new SwitchAction(node.getNodeId(), 0, SwitchAction.STATE.ON,
+                            sw.brightness.intValue()));
                 } catch (Throwable e) {
-                    logger.error("Exception in changing the state. node with id {}", node.getNodeId(), e);
+                    ZWaveDriver.logger.error("Exception in changing the state. node with id {}",
+                            Integer.valueOf(node.getNodeId()), e);
                 }
             }
 
@@ -118,21 +109,22 @@ public class ZWaveDriver implements DeviceDriver {
         };
     }
 
-    public CharacteristicCallback callback(ZColorfulSwitch sw, ZWaveSession session) {
+    public CharacteristicCallback callback(final ZColorfulSwitch sw, final ZWaveSession session) {
         return new CharacteristicCallback() {
             public void changed() {
                 try {
                     if (!sw.powerState) {
-                        session.doAction(new SwitchAction(sw.getId(), 0, STATE.OFF, 0));
+                        session.doAction((ZWaveAction) new SwitchAction(sw.getId(), 0, SwitchAction.STATE.OFF, 0));
+
                         return;
                     }
-
-                    if (sw.brightness == 0)
-                        sw.brightness = 50d;
-
-                    session.doAction(new SwitchAction(sw.getId(), 0, STATE.ON, sw.brightness.intValue()));
+                    if (sw.powerState && sw.brightness.doubleValue() == 0.0D) {
+                        sw.brightness = Double.valueOf(50.0D);
+                    }
+                    session.doAction((ZWaveAction) new SwitchAction(sw.getId(), 0, SwitchAction.STATE.ON,
+                            sw.brightness.intValue()));
                 } catch (Throwable e) {
-                    logger.error("Exception in changing the state.", e);
+                    ZWaveDriver.logger.error("Exception in changing the state.", e);
                 }
             }
 
@@ -142,13 +134,14 @@ public class ZWaveDriver implements DeviceDriver {
         };
     }
 
-    public CharacteristicCallback callback(ZOnOffSwitch sw, ZWaveSession session) {
+    public CharacteristicCallback callback(final AbstractZSwitch.ZOnOffSwitch sw, final ZWaveSession session) {
         return new CharacteristicCallback() {
             public void changed() {
                 try {
-                    session.doAction(new SwitchAction(sw.getId(), (sw.powerState) ? STATE.ON : STATE.OFF));
+                    session.doAction((ZWaveAction) new SwitchAction(sw.getId(),
+                            sw.powerState ? SwitchAction.STATE.ON : SwitchAction.STATE.OFF));
                 } catch (Throwable th) {
-                    logger.error("Exception in changing the state.", th);
+                    ZWaveDriver.logger.error("Exception in changing the state.", th);
                 }
             }
 

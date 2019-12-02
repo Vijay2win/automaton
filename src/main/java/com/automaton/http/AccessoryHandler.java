@@ -22,7 +22,7 @@ class AccessoryHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        final Channel channel = ctx.pipeline().channel();
+        Channel channel = ctx.pipeline().channel();
         this.connection = homekitClientConnectionFactory.createConnection(response -> {
             if (!channel.isActive())
                 return;
@@ -57,11 +57,13 @@ class AccessoryHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         if (responseBody == null) {
             responseBody = "";
         }
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.copiedBuffer(responseBody.getBytes(StandardCharsets.UTF_8)));
-        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain")
-                          .set(HttpHeaders.Names.CONTENT_LENGTH, response.content().readableBytes())
-                          .set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-        ctx.write(response);
+        DefaultFullHttpResponse defaultFullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status,
+                Unpooled.copiedBuffer(responseBody.getBytes(StandardCharsets.UTF_8)));
+        defaultFullHttpResponse.headers().set("Content-Type", "text/plain");
+        defaultFullHttpResponse.headers().set("Content-Length",
+                Integer.valueOf(defaultFullHttpResponse.content().readableBytes()));
+        defaultFullHttpResponse.headers().set("Connection", "keep-alive");
+        ctx.write(defaultFullHttpResponse);
         ctx.flush();
     }
 
@@ -71,13 +73,11 @@ class AccessoryHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         ctx.flush();
     }
 
-    @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         ctx.flush();
         super.channelReadComplete(ctx);
     }
 
-    @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         boolean errorLevel = !(cause instanceof IOException);
         if (errorLevel) {

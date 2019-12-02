@@ -3,39 +3,36 @@ package com.automaton.characteristics;
 import java.util.concurrent.CompletableFuture;
 
 import com.automaton.accessories.TemperatureSensor;
-import com.automaton.accessories.TemperatureSensor.CoolingThermostat;
 
 public abstract class AbstractTemperature extends AbstractFloatCharacteristic implements EventableCharacteristic {
     public AbstractTemperature(String type, boolean isWritable, String description, TemperatureSensor sensor) {
-        super(type, isWritable, true, description, sensor.getMinimumTemperature(), sensor.getMaximumTemperature(), 0.1, "celsius");
+        super(type, isWritable, true, description, sensor.getMinimumTemperature(), sensor.getMaximumTemperature(), 0.1D,
+                "celsius");
     }
 
     public static class CoolingThresholdTemperature extends AbstractTemperature {
-        private final CoolingThermostat thermostat;
+        private final TemperatureSensor.CoolingThermostat thermostat;
 
-        public CoolingThresholdTemperature(CoolingThermostat thermostat) {
-            super("0000000D-0000-1000-8000-0026BB765291", true, "Temperature above which cooling will be active", thermostat);
+        public CoolingThresholdTemperature(TemperatureSensor.CoolingThermostat thermostat) {
+            super("0000000D-0000-1000-8000-0026BB765291", true, "Temperature above which cooling will be active",
+                    (TemperatureSensor) thermostat);
             this.thermostat = thermostat;
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            thermostat.subscribe(callback);
+            this.thermostat.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            thermostat.unsubscribe();
+            this.thermostat.unsubscribe();
         }
 
-        @Override
         protected CompletableFuture<Double> getDoubleValue() {
-            return thermostat.getCoolingThresholdTemperature();
+            return this.thermostat.getCoolingThresholdTemperature();
         }
 
-        @Override
         protected void setValue(Double value) throws Exception {
-            thermostat.setCoolingThresholdTemperature(value);
+            this.thermostat.setCoolingThresholdTemperature(value);
         }
     }
 
@@ -47,24 +44,19 @@ public abstract class AbstractTemperature extends AbstractFloatCharacteristic im
             this.sensor = thermostat;
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            sensor.subscribe(callback);
+            this.sensor.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            sensor.unsubscribe();
+            this.sensor.unsubscribe();
         }
 
-        @Override
         protected CompletableFuture<Double> getDoubleValue() {
-            return sensor.getCurrentTemperature();
+            return this.sensor.getCurrentTemperature();
         }
 
-        @Override
         protected void setValue(Double value) throws Exception {
-            // Not writable
         }
     }
 }

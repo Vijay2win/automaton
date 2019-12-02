@@ -8,11 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.automaton.HomekitRegistry;
 import com.automaton.accessories.Accessory;
-import com.automaton.http.HttpResponses.InternalServerErrorResponse;
-import com.automaton.http.HttpResponses.NotFoundResponse;
-import com.automaton.pairing.PairVerificationManager;
-import com.automaton.pairing.PairingManager;
-import com.automaton.pairing.PairingUpdateController;
+import com.automaton.pairing.*;
 import com.automaton.security.JmdnsHomekitAdvertiser;
 import com.automaton.server.SubscriptionManager;
 
@@ -23,16 +19,17 @@ public class HttpSession {
     private static final Logger logger = LoggerFactory.getLogger(HttpSession.class);
 
     private volatile PairingManager pairingManager;
+
     private volatile PairVerificationManager pairVerificationManager;
     private volatile AccessoryController accessoryController;
     private volatile CharacteristicsController characteristicsController;
-
     private final HomekitRegistry registry;
     private final SubscriptionManager subscriptions;
     private final HomekitConnection connection;
     private final JmdnsHomekitAdvertiser advertiser;
 
-    public HttpSession(HomekitRegistry registry, SubscriptionManager subscriptions, HomekitConnection connection, JmdnsHomekitAdvertiser advertiser) {
+    public HttpSession(HomekitRegistry registry, SubscriptionManager subscriptions, HomekitConnection connection,
+            JmdnsHomekitAdvertiser advertiser) {
         this.registry = registry;
         this.subscriptions = subscriptions;
         this.connection = connection;
@@ -45,14 +42,12 @@ public class HttpSession {
             return handlePairSetup(request);
         case "/pair-verify":
             return handlePairVerify(request);
-        default:
-            if (registry.isAllowUnauthenticatedRequests()) {
-                return handleAuthenticatedRequest(request);
-            } else {
-                logger.info("Unrecognized request for " + request.getUri());
-                return new NotFoundResponse();
-            }
         }
+        if (this.registry.isAllowUnauthenticatedRequests()) {
+            return handleAuthenticatedRequest(request);
+        }
+        logger.info("Unrecognized request for " + request.getUri());
+        return new HttpResponses.NotFoundResponse();
     }
 
     public HttpResponse handleAuthenticatedRequest(FullHttpRequest request) throws IOException {
@@ -62,66 +57,66 @@ public class HttpSession {
                 return getAccessoryController().listing();
             case "/characteristics":
                 if (request.getMethod().equals(HttpMethod.PUT)) {
-                    return getCharacteristicsController().put(request, connection);
-                } else {
-                    logger.info("Unrecognized method for " + request.getUri());
-                    return new NotFoundResponse();
+                    return getCharacteristicsController().put(request, this.connection);
                 }
+                logger.info("Unrecognized method for " + request.getUri());
+                return new HttpResponses.NotFoundResponse();
+
             case "/pairings":
-                return new PairingUpdateController(advertiser).handle(request);
-            default:
-                if (request.getUri().startsWith("/characteristics?"))
-                    return getCharacteristicsController().get(request);
+                return (new PairingUpdateController(this.advertiser)).handle(request);
+            }
+            if (request.getUri().startsWith("/characteristics?")) {
+                return getCharacteristicsController().get(request);
             }
             logger.info("Unrecognized request for " + request.getUri());
-            return new NotFoundResponse();
+            return new HttpResponses.NotFoundResponse();
         } catch (Exception e) {
             logger.error("Could not handle request", e);
-            return new InternalServerErrorResponse(e);
+            return new HttpResponses.InternalServerErrorResponse(e);
         }
     }
 
     private HttpResponse handlePairSetup(FullHttpRequest request) {
-        if (pairingManager == null) {
+        if (this.pairingManager == null)
             synchronized (HttpSession.class) {
-                if (pairingManager == null)
-                    pairingManager = new PairingManager(registry, advertiser);
+                if (this.pairingManager == null) {
+                    this.pairingManager = new PairingManager(this.registry, this.advertiser);
+                }
             }
-        }
         try {
-            return pairingManager.handle(request);
+            return this.pairingManager.handle(request);
         } catch (Exception e) {
             logger.error("Exception encountered during pairing", e);
-            return new InternalServerErrorResponse(e);
+            return new HttpResponses.InternalServerErrorResponse(e);
         }
     }
 
     private HttpResponse handlePairVerify(FullHttpRequest request) {
-        if (pairVerificationManager == null) {
+        if (this.pairVerificationManager == null) {
             synchronized (HttpSession.class) {
-                if (pairVerificationManager == null) {
-                    pairVerificationManager = new PairVerificationManager(registry);
+                if (this.pairVerificationManager == null) {
+                    this.pairVerificationManager = new PairVerificationManager(this.registry);
                 }
             }
         }
         try {
-            return pairVerificationManager.handle(request);
+            return this.pairVerificationManager.handle(request);
         } catch (Exception e) {
             logger.error("Excepton encountered while verifying pairing", e);
-            return new InternalServerErrorResponse(e);
+            return new HttpResponses.InternalServerErrorResponse(e);
         }
     }
 
     private synchronized AccessoryController getAccessoryController() {
-        if (accessoryController == null)
-            accessoryController = new AccessoryController(registry);
-        return accessoryController;
+        if (this.accessoryController == null)
+            this.accessoryController = new AccessoryController(this.registry);
+        return this.accessoryController;
     }
 
     private synchronized CharacteristicsController getCharacteristicsController() {
-        if (characteristicsController == null)
-            characteristicsController = new CharacteristicsController(registry, subscriptions);
-        return characteristicsController;
+        if (this.characteristicsController == null)
+            this.characteristicsController = new CharacteristicsController(this.registry, this.subscriptions);
+        return this.characteristicsController;
     }
 
     public static class SessionKey {
@@ -133,22 +128,19 @@ public class HttpSession {
             this.accessory = accessory;
         }
 
-        @Override
         public boolean equals(Object obj) {
             if (obj instanceof SessionKey) {
-                return address.equals(((SessionKey) obj).address) && accessory.equals(((SessionKey) obj).accessory);
-            } else {
-                return false;
+                return (this.address.equals(((SessionKey) obj).address)
+                        && this.accessory.equals(((SessionKey) obj).accessory));
             }
+            return false;
         }
 
-        @Override
         public int hashCode() {
             int hash = 1;
-            hash = hash * 31 + address.hashCode();
-            hash = hash * 31 + accessory.hashCode();
+            hash = hash * 31 + this.address.hashCode();
+            hash = hash * 31 + this.accessory.hashCode();
             return hash;
         }
     }
-
 }

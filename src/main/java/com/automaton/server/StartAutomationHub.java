@@ -25,8 +25,8 @@ public class StartAutomationHub {
     public StartAutomationHub() throws Exception {
         this.bridge = new HomekitServer(PORT).createBridge(MY_NAME, CORP, MODEL, SERIAL_NUMBER);
         this.driver = new ZWaveDriver(bridge);
-        //this.driver = new MockDriver(bridge);
-        //this.driver = new ZWaveDriver2(bridge);
+        // this.driver = new MockDriver(bridge);
+        // this.driver = new ZWaveDriver2(bridge);
     }
 
     private void init() throws Exception {

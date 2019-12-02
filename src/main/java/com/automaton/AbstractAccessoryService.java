@@ -1,14 +1,12 @@
 package com.automaton;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
-import com.automaton.accessories.BatteryAccessory;
 import com.automaton.accessories.Accessory;
-import com.automaton.characteristics.Characteristic;
+import com.automaton.accessories.BatteryAccessory;
 import com.automaton.characteristics.AbstractIntegerCharacteristic.BatteryLevel;
 import com.automaton.characteristics.AbstractStaticCharacteristic.Name;
+import com.automaton.characteristics.Characteristic;
 
 public abstract class AbstractAccessoryService {
     private final String type;

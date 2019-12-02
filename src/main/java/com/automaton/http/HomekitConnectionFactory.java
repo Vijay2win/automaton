@@ -11,13 +11,14 @@ public class HomekitConnectionFactory {
     private final SubscriptionManager subscriptions;
     private final JmdnsHomekitAdvertiser advertiser;
 
-    public HomekitConnectionFactory(HomekitRegistry registry, SubscriptionManager subscriptions, JmdnsHomekitAdvertiser advertiser) {
+    public HomekitConnectionFactory(HomekitRegistry registry, SubscriptionManager subscriptions,
+            JmdnsHomekitAdvertiser advertiser) {
         this.registry = registry;
         this.subscriptions = subscriptions;
         this.advertiser = advertiser;
     }
 
     public HomekitConnection createConnection(Consumer<HttpResponse> outOfBandMessageCallback) {
-        return new HomekitConnection(registry, outOfBandMessageCallback, subscriptions, advertiser);
+        return new HomekitConnection(this.registry, outOfBandMessageCallback, this.subscriptions, this.advertiser);
     }
 }

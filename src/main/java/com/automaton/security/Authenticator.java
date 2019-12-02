@@ -28,23 +28,23 @@ public class Authenticator {
         } catch (Throwable th) {
             throw new IOError(th);
         }
-        logger.info("The PIN for pairing is {}", PIN);
+        logger.info("The PIN for pairing is {}", "000-00-001");
     }
 
     public String getPin() {
-        return PIN;
+        return "000-00-001";
     }
 
     public String getMac() {
-        return mac;
+        return this.mac;
     }
 
     public BigInteger getSalt() {
-        return salt;
+        return this.salt;
     }
 
     public byte[] getPrivateKey() {
-        return privateKey;
+        return this.privateKey;
     }
 
     public void createUser(String username, byte[] publicKey) {

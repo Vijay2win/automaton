@@ -4,70 +4,58 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.json.JsonNumber;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import javax.json.*;
 
-import com.automaton.accessories.Fan;
-import com.automaton.accessories.Light.DimmableLight;
-import com.automaton.accessories.WindowCovering;
-import com.automaton.accessories.WindowCovering.HorizontalTiltingWindowCovering;
-import com.automaton.accessories.WindowCovering.VerticalTiltingWindowCovering;
+import com.automaton.accessories.*;
 
 public abstract class AbstractIntegerCharacteristic extends AbstractCharacteristic<Integer> {
-    private final int minValue, maxValue;
+    private final int minValue;
+    private final int maxValue;
     private final String unit;
 
-    public AbstractIntegerCharacteristic(String type, boolean isWritable, boolean isReadable, String description, int minValue, int maxValue, String unit) {
+    public AbstractIntegerCharacteristic(String type, boolean isWritable, boolean isReadable, String description,
+            int minValue, int maxValue, String unit) {
         super(type, "int", isWritable, isReadable, description);
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.unit = unit;
     }
 
-    @Override
     protected CompletableFuture<JsonObjectBuilder> makeBuilder(int iid) {
-        return super.makeBuilder(iid).thenApply(builder -> {
-            return builder.add("minValue", minValue).add("maxValue", maxValue).add("minStep", 1).add("unit", unit);
-        });
+        return super.makeBuilder(iid).thenApply(builder -> builder.add("minValue", this.minValue)
+                .add("maxValue", this.maxValue).add("minStep", 1).add("unit", this.unit));
     }
 
-    @Override
     protected Integer getDefault() {
-        return minValue;
+        return Integer.valueOf(this.minValue);
     }
 
-    @Override
     protected Integer convert(JsonValue jsonValue) {
-        return ((JsonNumber) jsonValue).intValue();
+        return Integer.valueOf(((JsonNumber) jsonValue).intValue());
     }
 
     public static class Brightness extends AbstractIntegerCharacteristic implements EventableCharacteristic {
-        private final DimmableLight lightbulb;
+        private final Light.DimmableLight lightbulb;
 
-        public Brightness(DimmableLight lightbulb) {
+        public Brightness(Light.DimmableLight lightbulb) {
             super("00000008-0000-1000-8000-0026BB765291", true, true, "Adjust brightness of the light", 0, 100, "%");
             this.lightbulb = lightbulb;
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            lightbulb.subscribe(callback);
+            this.lightbulb.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            lightbulb.unsubscribe();
+            this.lightbulb.unsubscribe();
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            lightbulb.setBrightness(value);
+            this.lightbulb.setBrightness(value);
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return lightbulb.getBrightness();
+            return this.lightbulb.getBrightness();
         }
     }
 
@@ -76,31 +64,27 @@ public abstract class AbstractIntegerCharacteristic extends AbstractCharacterist
         private final Consumer<CharacteristicCallback> subscriber;
         private final Runnable unsubscriber;
 
-        public BatteryLevel(Supplier<CompletableFuture<Integer>> getter, Consumer<CharacteristicCallback> subscriber, Runnable unsubscriber) {
+        public BatteryLevel(Supplier<CompletableFuture<Integer>> getter, Consumer<CharacteristicCallback> subscriber,
+                Runnable unsubscriber) {
             super("00000068-0000-1000-8000-0026BB765291", false, true, "Battery Level", 0, 100, "%");
             this.getter = getter;
             this.subscriber = subscriber;
             this.unsubscriber = unsubscriber;
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return getter.get();
+            return this.getter.get();
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Read Only
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            subscriber.accept(callback);
+            this.subscriber.accept(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            unsubscriber.run();
+            this.unsubscriber.run();
         }
     }
 
@@ -112,53 +96,45 @@ public abstract class AbstractIntegerCharacteristic extends AbstractCharacterist
             this.fan = fan;
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            fan.subscribeRotationSpeed(callback);
+            this.fan.subscribeRotationSpeed(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            fan.unsubscribeRotationSpeed();
+            this.fan.unsubscribeRotationSpeed();
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            fan.setRotationSpeed(value);
+            this.fan.setRotationSpeed(value);
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return fan.getRotationSpeed();
+            return this.fan.getRotationSpeed();
         }
     }
 
     public static class HorizontalTiltAngle extends AbstractIntegerCharacteristic implements EventableCharacteristic {
-        private final HorizontalTiltingWindowCovering windowCovering;
+        private final WindowCovering.HorizontalTiltingWindowCovering windowCovering;
 
-        public HorizontalTiltAngle(HorizontalTiltingWindowCovering windowCovering) {
-            super("0000006C-0000-1000-8000-0026BB765291", false, true, "The current horizontal tilt angle", -90, 90, "Arc Degree");
+        public HorizontalTiltAngle(WindowCovering.HorizontalTiltingWindowCovering windowCovering) {
+            super("0000006C-0000-1000-8000-0026BB765291", false, true, "The current horizontal tilt angle", -90, 90,
+                    "Arc Degree");
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Read Only
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getCurrentHorizontalTiltAngle();
+            return this.windowCovering.getCurrentHorizontalTiltAngle();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribe(callback);
+            this.windowCovering.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribe();
+            this.windowCovering.unsubscribe();
         }
     }
 
@@ -170,53 +146,46 @@ public abstract class AbstractIntegerCharacteristic extends AbstractCharacterist
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Read Only
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getCurrentPosition();
+            return this.windowCovering.getCurrentPosition();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribe(callback);
+            this.windowCovering.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribe();
+            this.windowCovering.unsubscribe();
         }
     }
 
-    public static class TargetHorizontalTiltAngle extends AbstractIntegerCharacteristic implements EventableCharacteristic {
-        private final HorizontalTiltingWindowCovering windowCovering;
+    public static class TargetHorizontalTiltAngle extends AbstractIntegerCharacteristic
+            implements EventableCharacteristic {
+        private final WindowCovering.HorizontalTiltingWindowCovering windowCovering;
 
-        public TargetHorizontalTiltAngle(HorizontalTiltingWindowCovering windowCovering) {
-            super("0000007B-0000-1000-8000-0026BB765291", true, true, "The target horizontal tilt angle", -90, 90, "Arc Degree");
+        public TargetHorizontalTiltAngle(WindowCovering.HorizontalTiltingWindowCovering windowCovering) {
+            super("0000007B-0000-1000-8000-0026BB765291", true, true, "The target horizontal tilt angle", -90, 90,
+                    "Arc Degree");
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            windowCovering.setTargetHorizontalTiltAngle(value);
+            this.windowCovering.setTargetHorizontalTiltAngle(value.intValue());
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getTargetHorizontalTiltAngle();
+            return this.windowCovering.getTargetHorizontalTiltAngle();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribeTargetHorizontalTiltAngle(callback);
+            this.windowCovering.subscribeTargetHorizontalTiltAngle(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribeTargetHorizontalTiltAngle();
+            this.windowCovering.unsubscribeTargetHorizontalTiltAngle();
         }
     }
 
@@ -228,82 +197,72 @@ public abstract class AbstractIntegerCharacteristic extends AbstractCharacterist
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            windowCovering.setTargetPosition(value);
+            this.windowCovering.setTargetPosition(value.intValue());
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getTargetPosition();
+            return this.windowCovering.getTargetPosition();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribeTargetPosition(callback);
+            this.windowCovering.subscribeTargetPosition(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribeTargetPosition();
+            this.windowCovering.unsubscribeTargetPosition();
         }
     }
 
     public static class VerticalTiltAngle extends AbstractIntegerCharacteristic implements EventableCharacteristic {
-        private final VerticalTiltingWindowCovering windowCovering;
+        private final WindowCovering.VerticalTiltingWindowCovering windowCovering;
 
-        public VerticalTiltAngle(VerticalTiltingWindowCovering windowCovering) {
-            super("0000006E-0000-1000-8000-0026BB765291", false, true, "The current vertical tilt angle", -90, 90, "Arc Degree");
+        public VerticalTiltAngle(WindowCovering.VerticalTiltingWindowCovering windowCovering) {
+            super("0000006E-0000-1000-8000-0026BB765291", false, true, "The current vertical tilt angle", -90, 90,
+                    "Arc Degree");
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            // Read Only
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getCurrentVerticalTiltAngle();
+            return this.windowCovering.getCurrentVerticalTiltAngle();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribe(callback);
+            this.windowCovering.subscribe(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribe();
+            this.windowCovering.unsubscribe();
         }
     }
 
-    public static class VerticalTiltAngleTarget extends AbstractIntegerCharacteristic implements EventableCharacteristic {
-        private final VerticalTiltingWindowCovering windowCovering;
+    public static class VerticalTiltAngleTarget extends AbstractIntegerCharacteristic
+            implements EventableCharacteristic {
+        private final WindowCovering.VerticalTiltingWindowCovering windowCovering;
 
-        public VerticalTiltAngleTarget(VerticalTiltingWindowCovering windowCovering) {
-            super("0000007D-0000-1000-8000-0026BB765291", true, true, "The target vertical tilt angle", -90, 90, "Arc Degree");
+        public VerticalTiltAngleTarget(WindowCovering.VerticalTiltingWindowCovering windowCovering) {
+            super("0000007D-0000-1000-8000-0026BB765291", true, true, "The target vertical tilt angle", -90, 90,
+                    "Arc Degree");
             this.windowCovering = windowCovering;
         }
 
-        @Override
         protected void setValue(Integer value) throws Exception {
-            windowCovering.setTargetVerticalTiltAngle(value);
+            this.windowCovering.setTargetVerticalTiltAngle(value.intValue());
         }
 
-        @Override
         protected CompletableFuture<Integer> getValue() {
-            return windowCovering.getTargetVerticalTiltAngle();
+            return this.windowCovering.getTargetVerticalTiltAngle();
         }
 
-        @Override
         public void subscribe(CharacteristicCallback callback) {
-            windowCovering.subscribeTargetVerticalTiltAngle(callback);
+            this.windowCovering.subscribeTargetVerticalTiltAngle(callback);
         }
 
-        @Override
         public void unsubscribe() {
-            windowCovering.unsubscribeTargetVerticalTiltAngle();
+            this.windowCovering.unsubscribeTargetVerticalTiltAngle();
         }
     }
 }

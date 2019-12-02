@@ -14,16 +14,16 @@ import com.automaton.accessories.SecuritySystem.SecuritySystemAlarmType;
 public abstract class AbstractEnumCharacteristic extends AbstractCharacteristic<Integer> {
     private final int maxValue;
 
-    public AbstractEnumCharacteristic(String type, boolean isWritable, boolean isReadable, String description, int maxValue) {
+    public AbstractEnumCharacteristic(String type, boolean isWritable, boolean isReadable, String description,
+            int maxValue) {
         super(type, "int", isWritable, isReadable, description);
         this.maxValue = maxValue;
     }
 
     @Override
     protected CompletableFuture<JsonObjectBuilder> makeBuilder(int iid) {
-        return super.makeBuilder(iid).thenApply(builder -> {
-            return builder.add("minValue", 0).add("maxValue", maxValue).add("minStep", 1);
-        });
+        return super.makeBuilder(iid)
+                .thenApply(builder -> builder.add("minValue", 0).add("maxValue", maxValue).add("minStep", 1));
     }
 
     @Override
@@ -44,7 +44,8 @@ public abstract class AbstractEnumCharacteristic extends AbstractCharacteristic<
         return 0;
     }
 
-    public static class SecuritySystemAlarmTypeCharacteristic extends AbstractEnumCharacteristic implements EventableCharacteristic {
+    public static class SecuritySystemAlarmTypeCharacteristic extends AbstractEnumCharacteristic
+            implements EventableCharacteristic {
         private final SecuritySystem securitySystem;
 
         public SecuritySystemAlarmTypeCharacteristic(SecuritySystem securitySystem) {
@@ -83,7 +84,8 @@ public abstract class AbstractEnumCharacteristic extends AbstractCharacteristic<
 
         @Override
         protected CompletableFuture<Integer> getValue() {
-            return carbonMonoxideSensor.getCarbonMonoxideDetectedState().thenApply(CarbonMonoxideDetectedState::getCode);
+            return carbonMonoxideSensor.getCarbonMonoxideDetectedState()
+                    .thenApply(CarbonMonoxideDetectedState::getCode);
         }
 
         @Override

@@ -12,9 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.automaton.HomekitRegistry;
 import com.automaton.characteristics.Characteristic;
 import com.automaton.characteristics.EventableCharacteristic;
-import com.automaton.http.HttpResponses.HapJsonNoContentResponse;
-import com.automaton.http.HttpResponses.HapJsonResponse;
-import com.automaton.http.HttpResponses.NotFoundResponse;
+import com.automaton.http.HttpResponses.*;
 import com.automaton.server.SubscriptionManager;
 import com.automaton.utils.AutomatonUtils;
 
@@ -81,12 +79,13 @@ public class CharacteristicsController {
                 if (jsonCharacteristic.containsKey("ev") && characteristic instanceof EventableCharacteristic) {
                     if (jsonCharacteristic.getBoolean("ev")) {
                         subscriptions.addSubscription(aid, iid, (EventableCharacteristic) characteristic, connection);
-                    } else {
-                        subscriptions.removeSubscription((EventableCharacteristic) characteristic, connection);
+                        continue;
                     }
+                    subscriptions.removeSubscription((EventableCharacteristic) characteristic, connection);
                 }
             }
         }
+
         return new HapJsonNoContentResponse();
     }
 }

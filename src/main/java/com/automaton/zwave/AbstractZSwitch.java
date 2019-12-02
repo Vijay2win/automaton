@@ -3,21 +3,22 @@ package com.automaton.zwave;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.automaton.accessories.Light;
 import com.automaton.characteristics.CharacteristicCallback;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Sets;
 
 public abstract class AbstractZSwitch {
     protected static final Logger logger = LoggerFactory.getLogger(AbstractZSwitch.class);
 
     private final int id;
+
     private final String serial;
     private final String label;
-
     private final String model = "on-off-switch";
     private final String manufacturer = "VJ, Inc.";
 
@@ -31,37 +32,38 @@ public abstract class AbstractZSwitch {
     }
 
     public int getId() {
-        return id;
+        return this.id;
     }
 
     public String getLabel() {
-        return label;
+        return this.label;
     }
 
     public String getSerialNumber() {
-        return serial;
+        return this.serial;
     }
 
     public String getModel() {
-        return model;
+        return "on-off-switch";
     }
 
     public String getManufacturer() {
-        return manufacturer;
+        return "VJ, Inc.";
     }
 
     public void identify() {
-        System.out.println("Identifying " + label);
+        System.out.println("Identifying " + this.label);
     }
 
     public CompletableFuture<Boolean> getPowerState() {
-        return CompletableFuture.completedFuture(powerState);
+        return CompletableFuture.completedFuture(Boolean.valueOf(this.powerState));
     }
 
     public CompletableFuture<Void> setPowerState(boolean powerState) throws Exception {
         this.powerState = powerState;
-        subscribeCallback.forEach(c -> c.changed());
-        return CompletableFuture.completedFuture(null);
+        for (CharacteristicCallback callback : this.subscribeCallback)
+            callback.changed();
+        return (CompletableFuture) CompletableFuture.completedFuture(null);
     }
 
     public void subscribe(CharacteristicCallback callback) {
@@ -69,7 +71,11 @@ public abstract class AbstractZSwitch {
     }
 
     public void unsubscribe() {
-        this.subscribeCallback = subscribeCallback.stream().filter(i -> !i.isRemovable()).collect(Collectors.toSet());
+        this.subscribeCallback = Sets.filter(this.subscribeCallback, new Predicate<CharacteristicCallback>() {
+            public boolean apply(CharacteristicCallback input) {
+                return !input.isRemovable();
+            }
+        });
     }
 
     public static class ZOnOffSwitch extends AbstractZSwitch implements Light {

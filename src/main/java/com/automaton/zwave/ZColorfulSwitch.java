@@ -5,59 +5,52 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.automaton.accessories.Light.ColorfulLight;
+import com.automaton.accessories.Light;
 import com.automaton.characteristics.CharacteristicCallback;
 
-public class ZColorfulSwitch extends AbstractZSwitch implements ColorfulLight {
+public class ZColorfulSwitch extends AbstractZSwitch implements Light.ColorfulLight {
     protected static final Logger logger = LoggerFactory.getLogger(ZColorfulSwitch.class);
 
-    Double brightness = 0d;
+    Double brightness = Double.valueOf(0.0D);
 
     public ZColorfulSwitch(int id, String name) {
         super(id, name);
     }
 
-    @Override
     public CompletableFuture<Double> getHue() {
-        return CompletableFuture.completedFuture(brightness);
+        return CompletableFuture.completedFuture(this.brightness);
     }
 
-    @Override
     public CompletableFuture<Void> setHue(Double value) throws Exception {
-        if (value > 99)
-            return CompletableFuture.completedFuture(null); // ignoring.
+        if (value.doubleValue() > 99.0D)
+            return (CompletableFuture) CompletableFuture.completedFuture(null);
         this.brightness = value;
-        subscribeCallback.forEach(c -> c.changed());
-        return CompletableFuture.completedFuture(null);
+        for (CharacteristicCallback callback : this.subscribeCallback)
+            callback.changed();
+        return (CompletableFuture) CompletableFuture.completedFuture(null);
     }
 
-    @Override
     public void subscribe(CharacteristicCallback callback) {
-        this.subscribe(callback);
+        subscribe(callback);
     }
 
-    @Override
     public void unsubscribe() {
-        this.unsubscribe();
+        unsubscribe();
     }
 
-    @Override
     public CompletableFuture<Double> getSaturation() {
-        return getHue(); // work around for now.
+        return getHue();
     }
 
-    @Override
     public CompletableFuture<Void> setSaturation(Double value) throws Exception {
-        return setHue(value); // work around for now.
+        return setHue(value);
     }
 
-    @Override
     public void subscribeSaturation(CharacteristicCallback callback) {
-        this.subscribe(callback);
+        subscribe(callback);
     }
 
-    @Override
     public void unsubscribeSaturation() {
-        this.unsubscribe();
+        unsubscribe();
     }
 }

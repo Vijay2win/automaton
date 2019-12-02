@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import com.automaton.http.HttpResponse;
-import com.automaton.http.HttpResponses.PairingResponse;
-import com.automaton.pairing.PairingManager.MessageType;
-import com.automaton.pairing.TypeLengthValueUtils.DecodeResult;
+import com.automaton.http.HttpResponses;
 import com.automaton.security.Authenticator;
 import com.automaton.security.JmdnsHomekitAdvertiser;
 import com.automaton.utils.AutomatonUtils;
@@ -21,20 +19,21 @@ public class PairingUpdateController {
     }
 
     public HttpResponse handle(FullHttpRequest request) throws IOException {
-        DecodeResult d = TypeLengthValueUtils.decode(AutomatonUtils.readAllRemaining(request.content()));
+        TypeLengthValueUtils.DecodeResult d = TypeLengthValueUtils
+                .decode(AutomatonUtils.readAllRemaining(request.content()));
 
-        int method = d.getByte(MessageType.METHOD);
-        if (method == 3) { // Add pairing
-            byte[] username = d.getBytes(MessageType.USERNAME);
-            byte[] ltpk = d.getBytes(MessageType.PUBLIC_KEY);
+        int method = d.getByte(PairingManager.MessageType.METHOD);
+        if (method == 3) {
+            byte[] username = d.getBytes(PairingManager.MessageType.USERNAME);
+            byte[] ltpk = d.getBytes(PairingManager.MessageType.PUBLIC_KEY);
             Authenticator.INSTANCE.createUser(new String(username, StandardCharsets.UTF_8), ltpk);
-        } else if (method == 4) { // Remove pairing
-            byte[] username = d.getBytes(MessageType.USERNAME);
+        } else if (method == 4) {
+            byte[] username = d.getBytes(PairingManager.MessageType.USERNAME);
             Authenticator.INSTANCE.removeUser(new String(username, StandardCharsets.UTF_8));
-            advertiser.setDiscoverable(true);
+            this.advertiser.setDiscoverable(true);
         } else {
             throw new RuntimeException("Unrecognized method: " + method);
         }
-        return new PairingResponse(new byte[] { 0x06, 0x01, 0x02 });
+        return (HttpResponse) new HttpResponses.PairingResponse(new byte[] { 6, 1, 2 });
     }
 }

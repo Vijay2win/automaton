@@ -6,9 +6,7 @@ import com.automaton.accessories.*;
 import com.automaton.accessories.Light.ColorfulLight;
 import com.automaton.accessories.Light.DimmableLight;
 import com.automaton.accessories.LockMechanism.LockableLockMechanism;
-import com.automaton.accessories.TemperatureSensor.CoolingThermostat;
-import com.automaton.accessories.TemperatureSensor.HeatingThermostat;
-import com.automaton.accessories.TemperatureSensor.Thermostats;
+import com.automaton.accessories.TemperatureSensor.*;
 import com.automaton.accessories.WindowCovering.HorizontalTiltingWindowCovering;
 import com.automaton.accessories.WindowCovering.VerticalTiltingWindowCovering;
 import com.automaton.characteristics.AbstractCharacteristic.*;
@@ -17,9 +15,7 @@ import com.automaton.characteristics.AbstractFloatCharacteristic.*;
 import com.automaton.characteristics.AbstractHeatingCoolingMode.TargetHeatingCoolingMode;
 import com.automaton.characteristics.AbstractHeatingCoolingMode.ThermostatModeCharacteristic;
 import com.automaton.characteristics.AbstractIntegerCharacteristic.*;
-import com.automaton.characteristics.AbstractStaticCharacteristic.Manufacturer;
-import com.automaton.characteristics.AbstractStaticCharacteristic.Model;
-import com.automaton.characteristics.AbstractStaticCharacteristic.SerialNumber;
+import com.automaton.characteristics.AbstractStaticCharacteristic.*;
 import com.automaton.characteristics.AbstractTemperature;
 import com.automaton.characteristics.AbstractTemperature.CoolingThresholdTemperature;
 import com.automaton.characteristics.AbstractTemperature.Temperature;
@@ -70,7 +66,8 @@ public class AccessoryServices {
 
         public FanService(Fan fan, String serviceName) {
             super("00000040-0000-1000-8000-0026BB765291", fan, serviceName);
-            addCharacteristic(new PowerState(() -> fan.getFanPower(), v -> fan.setFanPower(v), c -> fan.subscribe(c), () -> fan.unsubscribe()));
+            addCharacteristic(new PowerState(() -> fan.getFanPower(), v -> fan.setFanPower(v.booleanValue()),
+                    c -> fan.subscribe(c), () -> fan.unsubscribe()));
             addCharacteristic(new FanDirection(fan));
             addCharacteristic(new FanSpeed(fan));
         }
@@ -85,7 +82,8 @@ public class AccessoryServices {
             super("00000041-0000-1000-8000-0026BB765291", door, serviceName);
             addCharacteristic(new GarageDoorState(door));
             addCharacteristic(new GarageTargetDoorState(door));
-            addCharacteristic(new ObstructionDetected(() -> door.getObstructionDetected(), c -> door.subscribeObstructionDetected(c), () -> door.unsubscribeObstructionDetected()));
+            addCharacteristic(new ObstructionDetected(() -> door.getObstructionDetected(),
+                    c -> door.subscribeObstructionDetected(c), () -> door.unsubscribeObstructionDetected()));
         }
     }
 
@@ -118,8 +116,8 @@ public class AccessoryServices {
 
         public LightService(Light light, String serviceName) {
             super("00000043-0000-1000-8000-0026BB765291", light, serviceName);
-            addCharacteristic(new PowerState(() -> light.getPowerState(), v -> light.setPowerState(v), c -> light.subscribe(c),
-                    () -> light.unsubscribe()));
+            addCharacteristic(new PowerState(() -> light.getPowerState(), v -> light.setPowerState(v.booleanValue()),
+                    c -> light.subscribe(c), () -> light.unsubscribe()));
 
             if (light instanceof DimmableLight) {
                 addCharacteristic(new Brightness((DimmableLight) light));
@@ -141,9 +139,8 @@ public class AccessoryServices {
             super("00000045-0000-1000-8000-0026BB765291", lock, serviceName);
             addCharacteristic(new LockState(lock));
 
-            if (lock instanceof LockableLockMechanism) {
+            if (lock instanceof LockableLockMechanism)
                 addCharacteristic(new TargetLockState((LockableLockMechanism) lock));
-            }
         }
     }
 
@@ -165,7 +162,8 @@ public class AccessoryServices {
 
         public OutletService(Outlet outlet, String serviceName) {
             super("00000047-0000-1000-8000-0026BB765291", outlet, serviceName);
-            addCharacteristic(new PowerState(() -> outlet.getPowerState(), v -> outlet.setPowerState(v), c -> outlet.subscribe(c), () -> outlet.unsubscribe()));
+            addCharacteristic(new PowerState(() -> outlet.getPowerState(), v -> outlet.setPowerState(v.booleanValue()),
+                    c -> outlet.subscribe(c), () -> outlet.unsubscribe()));
             addCharacteristic(new OutletInUse(outlet));
         }
     }
@@ -201,7 +199,8 @@ public class AccessoryServices {
 
         public SwitchService(Switch switchAccessory, String serviceName) {
             super("00000049-0000-1000-8000-0026BB765291", switchAccessory, serviceName);
-            addCharacteristic(new PowerState(() -> switchAccessory.getSwitchState(), v -> switchAccessory.setSwitchState(v), c -> switchAccessory.subscribe(c),
+            addCharacteristic(new PowerState(() -> switchAccessory.getSwitchState(),
+                    v -> switchAccessory.setSwitchState(v.booleanValue()), c -> switchAccessory.subscribe(c),
                     () -> switchAccessory.unsubscribe()));
         }
     }
@@ -232,9 +231,8 @@ public class AccessoryServices {
             if (thermostat instanceof HeatingThermostat) {
                 addCharacteristic(new ThermostatThreshold((HeatingThermostat) thermostat));
             }
-            if (thermostat instanceof CoolingThermostat) {
+            if (thermostat instanceof CoolingThermostat)
                 addCharacteristic(new CoolingThresholdTemperature((CoolingThermostat) thermostat));
-            }
         }
     }
 
@@ -249,7 +247,8 @@ public class AccessoryServices {
             addCharacteristic(new HoldPosition(windowCovering));
             addCharacteristic(new PositionState(windowCovering));
             addCharacteristic(new TargetPosition(windowCovering));
-            addCharacteristic(new ObstructionDetected(() -> windowCovering.getObstructionDetected(), c -> windowCovering.subscribeObstructionDetected(c),
+            addCharacteristic(new ObstructionDetected(() -> windowCovering.getObstructionDetected(),
+                    c -> windowCovering.subscribeObstructionDetected(c),
                     () -> windowCovering.unsubscribeObstructionDetected()));
 
             if (windowCovering instanceof HorizontalTiltingWindowCovering) {
@@ -296,7 +295,8 @@ public class AccessoryServices {
         private final HeatingThermostat thermostat;
 
         public ThermostatThreshold(HeatingThermostat thermostat) {
-            super("00000012-0000-1000-8000-0026BB765291", true, "Temperature below which heating will be active", thermostat);
+            super("00000012-0000-1000-8000-0026BB765291", true, "Temperature below which heating will be active",
+                    thermostat);
             this.thermostat = thermostat;
         }
 

@@ -2,9 +2,7 @@ package com.automaton.characteristics;
 
 import java.util.concurrent.CompletableFuture;
 
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.JsonValue;
+import javax.json.*;
 
 import com.automaton.accessories.Accessory;
 
@@ -17,27 +15,22 @@ public abstract class AbstractStaticCharacteristic extends AbstractCharacteristi
         this.value = value;
     }
 
-    @Override
     protected CompletableFuture<JsonObjectBuilder> makeBuilder(int iid) {
-        return super.makeBuilder(iid).thenApply(builder -> builder.add("maxLen", MAX_LEN));
+        return super.makeBuilder(iid).thenApply(builder -> builder.add("maxLen", 255));
     }
 
-    @Override
     public String convert(JsonValue jsonValue) {
         return ((JsonString) jsonValue).getString();
     }
 
-    @Override
     public void setValue(String value) throws Exception {
         throw new Exception("Cannot modify static strings");
     }
 
-    @Override
     protected CompletableFuture<String> getValue() {
-        return CompletableFuture.completedFuture(value).thenApply(s -> s != null ? s : "Unavailable");
+        return CompletableFuture.completedFuture(this.value).thenApply(s -> (s != null) ? s : "Unavailable");
     }
 
-    @Override
     protected String getDefault() {
         return "Unknown";
     }
@@ -62,7 +55,8 @@ public abstract class AbstractStaticCharacteristic extends AbstractCharacteristi
 
     public static class SerialNumber extends AbstractStaticCharacteristic {
         public SerialNumber(Accessory accessory) throws Exception {
-            super("00000030-0000-1000-8000-0026BB765291", "The serial number of the accessory", accessory.getSerialNumber());
+            super("00000030-0000-1000-8000-0026BB765291", "The serial number of the accessory",
+                    accessory.getSerialNumber());
         }
     }
 }

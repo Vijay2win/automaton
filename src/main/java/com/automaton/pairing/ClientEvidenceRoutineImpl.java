@@ -5,18 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import com.nimbusds.srp6.ClientEvidenceRoutine;
-import com.nimbusds.srp6.SRP6ClientEvidenceContext;
-import com.nimbusds.srp6.SRP6CryptoParams;
+import com.nimbusds.srp6.*;
 
 class ClientEvidenceRoutineImpl implements ClientEvidenceRoutine {
-
-    /**
-     * Calculates M1 according to the following formula:
-     * 
-     * M1 = H(H(N) xor H(g) || H(username) || s || A || B || H(S))
-     */
-    @Override
     public BigInteger computeClientEvidence(SRP6CryptoParams cryptoParams, SRP6ClientEvidenceContext ctx) {
         try {
             MessageDigest digest = MessageDigest.getInstance(cryptoParams.H);

@@ -5,11 +5,11 @@ import java.util.Collections;
 import java.util.Map;
 
 public interface HttpResponse {
-    public enum HttpVersion {
-        HTTP_1_1, EVENT_1_0
-    }
-
     int getStatusCode();
+
+    public enum HttpVersion {
+        HTTP_1_1, EVENT_1_0;
+    }
 
     default ByteBuffer getBody() {
         return ByteBuffer.allocate(0);

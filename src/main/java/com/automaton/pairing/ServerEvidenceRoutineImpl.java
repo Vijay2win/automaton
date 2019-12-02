@@ -4,15 +4,10 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import com.nimbusds.srp6.SRP6CryptoParams;
-import com.nimbusds.srp6.SRP6ServerEvidenceContext;
-import com.nimbusds.srp6.ServerEvidenceRoutine;
+import com.nimbusds.srp6.*;
 
 class ServerEvidenceRoutineImpl implements ServerEvidenceRoutine {
-
-    @Override
     public BigInteger computeServerEvidence(SRP6CryptoParams cryptoParams, SRP6ServerEvidenceContext ctx) {
-
         MessageDigest digest;
         try {
             digest = MessageDigest.getInstance(cryptoParams.H);
