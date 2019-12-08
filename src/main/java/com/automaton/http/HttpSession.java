@@ -43,7 +43,7 @@ public class HttpSession {
         case "/pair-verify":
             return handlePairVerify(request);
         }
-        if (this.registry.isAllowUnauthenticatedRequests()) {
+        if (registry.isAllowUnauthenticatedRequests()) {
             return handleAuthenticatedRequest(request);
         }
         logger.info("Unrecognized request for " + request.getUri());
@@ -57,13 +57,13 @@ public class HttpSession {
                 return getAccessoryController().listing();
             case "/characteristics":
                 if (request.getMethod().equals(HttpMethod.PUT)) {
-                    return getCharacteristicsController().put(request, this.connection);
+                    return getCharacteristicsController().put(request, connection);
                 }
                 logger.info("Unrecognized method for " + request.getUri());
                 return new HttpResponses.NotFoundResponse();
 
             case "/pairings":
-                return (new PairingUpdateController(this.advertiser)).handle(request);
+                return (new PairingUpdateController(advertiser)).handle(request);
             }
             if (request.getUri().startsWith("/characteristics?")) {
                 return getCharacteristicsController().get(request);
@@ -77,14 +77,14 @@ public class HttpSession {
     }
 
     private HttpResponse handlePairSetup(FullHttpRequest request) {
-        if (this.pairingManager == null)
+        if (pairingManager == null)
             synchronized (HttpSession.class) {
-                if (this.pairingManager == null) {
-                    this.pairingManager = new PairingManager(this.registry, this.advertiser);
+                if (pairingManager == null) {
+                    pairingManager = new PairingManager(registry, advertiser);
                 }
             }
         try {
-            return this.pairingManager.handle(request);
+            return pairingManager.handle(request);
         } catch (Exception e) {
             logger.error("Exception encountered during pairing", e);
             return new HttpResponses.InternalServerErrorResponse(e);
@@ -92,15 +92,15 @@ public class HttpSession {
     }
 
     private HttpResponse handlePairVerify(FullHttpRequest request) {
-        if (this.pairVerificationManager == null) {
+        if (pairVerificationManager == null) {
             synchronized (HttpSession.class) {
-                if (this.pairVerificationManager == null) {
-                    this.pairVerificationManager = new PairVerificationManager(this.registry);
+                if (pairVerificationManager == null) {
+                    pairVerificationManager = new PairVerificationManager(registry);
                 }
             }
         }
         try {
-            return this.pairVerificationManager.handle(request);
+            return pairVerificationManager.handle(request);
         } catch (Exception e) {
             logger.error("Excepton encountered while verifying pairing", e);
             return new HttpResponses.InternalServerErrorResponse(e);
@@ -108,15 +108,15 @@ public class HttpSession {
     }
 
     private synchronized AccessoryController getAccessoryController() {
-        if (this.accessoryController == null)
-            this.accessoryController = new AccessoryController(this.registry);
-        return this.accessoryController;
+        if (accessoryController == null)
+            accessoryController = new AccessoryController(registry);
+        return accessoryController;
     }
 
     private synchronized CharacteristicsController getCharacteristicsController() {
-        if (this.characteristicsController == null)
-            this.characteristicsController = new CharacteristicsController(this.registry, this.subscriptions);
-        return this.characteristicsController;
+        if (characteristicsController == null)
+            characteristicsController = new CharacteristicsController(registry, subscriptions);
+        return characteristicsController;
     }
 
     public static class SessionKey {
@@ -130,16 +130,16 @@ public class HttpSession {
 
         public boolean equals(Object obj) {
             if (obj instanceof SessionKey) {
-                return (this.address.equals(((SessionKey) obj).address)
-                        && this.accessory.equals(((SessionKey) obj).accessory));
+                return (address.equals(((SessionKey) obj).address)
+                        && accessory.equals(((SessionKey) obj).accessory));
             }
             return false;
         }
 
         public int hashCode() {
             int hash = 1;
-            hash = hash * 31 + this.address.hashCode();
-            hash = hash * 31 + this.accessory.hashCode();
+            hash = hash * 31 + address.hashCode();
+            hash = hash * 31 + accessory.hashCode();
             return hash;
         }
     }

@@ -46,8 +46,7 @@ public class AccessoryController {
                     serviceArrayBuilders.get(accessory.getId())));
         }
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            Json.createWriter(baos)
-                    .write(Json.createObjectBuilder().add("accessories", accessories).build());
+            Json.createWriter(baos).write(Json.createObjectBuilder().add("accessories", accessories).build());
             return new HapJsonResponse(baos.toByteArray());
         }
     }
@@ -59,8 +58,9 @@ public class AccessoryController {
         for (Characteristic characteristic : characteristics) {
             characteristicFutures.add(characteristic.toJson(++interfaceId));
         }
-        return CompletableFuture.allOf((CompletableFuture<?>[]) characteristicFutures
-                .toArray(new CompletableFuture[characteristicFutures.size()])).thenApply(v -> {
+        return CompletableFuture
+                .allOf(characteristicFutures.toArray(new CompletableFuture[characteristicFutures.size()]))
+                .thenApply(v -> {
                     JsonArrayBuilder jsonCharacteristics = Json.createArrayBuilder();
                     characteristicFutures.stream().map(future -> future.join())
                             .forEach(c -> jsonCharacteristics.add(c));

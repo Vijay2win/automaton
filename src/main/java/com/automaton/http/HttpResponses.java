@@ -145,14 +145,12 @@ public class HttpResponses {
 
     public static FullHttpResponse createResponse(HttpResponse homekitResponse) {
         DefaultFullHttpResponse defaultFullHttpResponse = new DefaultFullHttpResponse(
-                (homekitResponse.getVersion() == HttpResponse.HttpVersion.EVENT_1_0) ? EVENT_VERSION
-                        : HttpVersion.HTTP_1_1,
+                (homekitResponse.getVersion() == HttpResponse.HttpVersion.EVENT_1_0) ? EVENT_VERSION : HttpVersion.HTTP_1_1,
                 HttpResponseStatus.valueOf(homekitResponse.getStatusCode()),
                 Unpooled.copiedBuffer(homekitResponse.getBody()));
         for (Entry<String, String> header : homekitResponse.getHeaders().entrySet())
             defaultFullHttpResponse.headers().add(header.getKey(), header.getValue());
-        defaultFullHttpResponse.headers().set("Content-Length",
-                Integer.valueOf(defaultFullHttpResponse.content().readableBytes()));
+        defaultFullHttpResponse.headers().set("Content-Length", defaultFullHttpResponse.content().readableBytes());
         defaultFullHttpResponse.headers().set("Connection", "keep-alive");
         return defaultFullHttpResponse;
     }

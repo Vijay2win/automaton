@@ -38,8 +38,8 @@ public class NettyHttpServer {
     private NettyHttpServer service = null;
 
     public NettyHttpServer(int port, int nThreads) {
-        this.bossGroup = (EventLoopGroup) new NioEventLoopGroup();
-        this.workerGroup = (EventLoopGroup) new NioEventLoopGroup();
+        bossGroup = (EventLoopGroup) new NioEventLoopGroup();
+        workerGroup = (EventLoopGroup) new NioEventLoopGroup();
         this.port = port;
         this.nThreads = nThreads;
     }
@@ -47,13 +47,12 @@ public class NettyHttpServer {
     public CompletableFuture<Integer> create(HomekitConnectionFactory connectionFactory) {
         final CompletableFuture<Integer> portFuture = new CompletableFuture<>();
         ServerBootstrap b = new ServerBootstrap();
-        ((ServerBootstrap) ((ServerBootstrap) ((ServerBootstrap) b.group(this.bossGroup, this.workerGroup)
+        ((ServerBootstrap) ((ServerBootstrap) ((ServerBootstrap) b.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)).handler((ChannelHandler) new LoggingHandler(LogLevel.INFO)))
-                        .childHandler((ChannelHandler) new ServerInitializer(connectionFactory, this.allChannels,
-                                this.nThreads))
+                        .childHandler((ChannelHandler) new ServerInitializer(connectionFactory, allChannels, nThreads))
                         .option(ChannelOption.SO_BACKLOG, Integer.valueOf(128))).childOption(ChannelOption.SO_KEEPALIVE,
                                 Boolean.valueOf(true));
-        final ChannelFuture bindFuture = b.bind(this.port);
+        final ChannelFuture bindFuture = b.bind(port);
         bindFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
             public void operationComplete(Future<? super Void> future) throws Exception {
                 try {
@@ -90,29 +89,29 @@ public class NettyHttpServer {
             pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new LoggingHandler() });
             pipeline.addLast("http", (ChannelHandler) new NettyHttpServer.AggregateResponseEncoder());
             pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new HttpRequestDecoder() });
-            pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new HttpObjectAggregator(1000000) });
-            pipeline.addLast(this.blockingExecutorGroup,
-                    new ChannelHandler[] { (ChannelHandler) new AccessoryHandler(this.homekit) });
-            this.allChannels.add(ch);
+            pipeline.addLast(new ChannelHandler[] { (ChannelHandler) new HttpObjectAggregator(MAX_POST) });
+            pipeline.addLast(blockingExecutorGroup,
+                    new ChannelHandler[] { (ChannelHandler) new AccessoryHandler(homekit) });
+            allChannels.add(ch);
         }
     }
 
     public CompletableFuture<Integer> start(HomekitConnectionFactory clientConnectionFactory) {
-        if (this.service == null) {
-            this.service = create(this.port, this.nThreads);
-            return this.service.create(clientConnectionFactory);
+        if (service == null) {
+            service = create(port, nThreads);
+            return service.create(clientConnectionFactory);
         }
         throw new RuntimeException("HomekitHttpServer can only be started once");
     }
 
     public void shutdown() {
-        this.workerGroup.shutdownGracefully();
-        this.bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
+        bossGroup.shutdownGracefully();
     }
 
     public void resetConnections() {
         logger.info("Resetting connections");
-        this.allChannels.close();
+        allChannels.close();
     }
 
     public static NettyHttpServer create(int port, int nThreads) {

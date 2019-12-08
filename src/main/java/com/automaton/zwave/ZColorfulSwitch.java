@@ -23,11 +23,11 @@ public class ZColorfulSwitch extends AbstractZSwitch implements Light.ColorfulLi
 
     public CompletableFuture<Void> setHue(Double value) throws Exception {
         if (value.doubleValue() > 99.0D)
-            return (CompletableFuture) CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(null);
         this.brightness = value;
         for (CharacteristicCallback callback : this.subscribeCallback)
             callback.changed();
-        return (CompletableFuture) CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(null);
     }
 
     public void subscribe(CharacteristicCallback callback) {

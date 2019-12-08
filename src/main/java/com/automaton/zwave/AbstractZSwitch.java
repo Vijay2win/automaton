@@ -63,7 +63,7 @@ public abstract class AbstractZSwitch {
         this.powerState = powerState;
         for (CharacteristicCallback callback : this.subscribeCallback)
             callback.changed();
-        return (CompletableFuture) CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(null);
     }
 
     public void subscribe(CharacteristicCallback callback) {

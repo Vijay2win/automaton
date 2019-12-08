@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.automaton.HomekitRoot;
 import com.automaton.HomekitServer;
+import com.automaton.myq.MyQGarageDoorDriver;
 import com.automaton.zwave.ZWaveDriver;
 
 public class StartAutomationHub {
@@ -21,16 +22,19 @@ public class StartAutomationHub {
 
     private final HomekitRoot bridge;
     private final DeviceDriver driver;
+    private MyQGarageDoorDriver myQDriver;
 
     public StartAutomationHub() throws Exception {
         this.bridge = new HomekitServer(PORT).createBridge(MY_NAME, CORP, MODEL, SERIAL_NUMBER);
         this.driver = new ZWaveDriver(bridge);
+        this.myQDriver = new MyQGarageDoorDriver(bridge);
         // this.driver = new MockDriver(bridge);
         // this.driver = new ZWaveDriver2(bridge);
     }
 
     private void init() throws Exception {
         driver.initializeZWave();
+        myQDriver.initializeZWave();
 
         bridge.start();
         logger.info("Homekit network is ready to be paired.");

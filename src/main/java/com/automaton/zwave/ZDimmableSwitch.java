@@ -25,7 +25,7 @@ public class ZDimmableSwitch extends AbstractZSwitch implements Light.DimmableLi
         this.brightness = value;
         for (CharacteristicCallback callback : this.subscribeCallback)
             callback.changed();
-        return (CompletableFuture) CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(null);
     }
 
     public void subscribe(CharacteristicCallback callback) {
