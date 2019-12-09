@@ -11,8 +11,8 @@ import com.automaton.characteristics.CharacteristicCallback;
 import com.automaton.server.AutomatonConfiguration;
 import com.automaton.server.DeviceDriver;
 
-public class MyQGarageDoorDriver implements DeviceDriver {
-    protected static final Logger logger = LoggerFactory.getLogger(MyQGarageDoorDriver.class);
+public class GarageDoorDriver implements DeviceDriver {
+    protected static final Logger logger = LoggerFactory.getLogger(GarageDoorDriver.class);
     
     private static final String user = AutomatonConfiguration.getString("automaton.myq.user_name", "vijay2win@yahoo.com");
     private static final String pass = AutomatonConfiguration.getString("automaton.myq.password", "xxxxx");
@@ -20,7 +20,7 @@ public class MyQGarageDoorDriver implements DeviceDriver {
     
     private final HomekitRoot bridge;
 
-    public MyQGarageDoorDriver(HomekitRoot bridge) {
+    public GarageDoorDriver(HomekitRoot bridge) {
         this.bridge = bridge;
         logger.info("Trying to intialize MyQ Garage Device");
     }
@@ -43,7 +43,7 @@ public class MyQGarageDoorDriver implements DeviceDriver {
     }
 
     @Override
-    public void initializeZWave() throws Exception {
+    public void initialize() throws Exception {
         List<GarageDoorDevice> devices = door.init();
         for (GarageDoorDevice device: devices) {
             device.subscribe(callback(device));

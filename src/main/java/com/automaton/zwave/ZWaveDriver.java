@@ -31,7 +31,7 @@ public class ZWaveDriver implements DeviceDriver {
         this.session = new LocalZwaveSession().connect();
     }
 
-    public void initializeZWave() throws Exception {
+    public void initialize() throws Exception {
         while (!this.session.isNetworkReady()) {
             logger.info("ZWave Network not ready yet, sleeping");
             Uninterruptibles.sleepUninterruptibly(1L, TimeUnit.SECONDS);

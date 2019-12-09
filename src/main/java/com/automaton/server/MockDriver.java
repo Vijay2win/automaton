@@ -17,7 +17,7 @@ public class MockDriver implements DeviceDriver {
         this.bridge = bridge;
     }
 
-    public void initializeZWave() throws Exception {
+    public void initialize() throws Exception {
         this.bridge.addAccessory((Accessory) new ZDimmableSwitch(7, "1233"));
 
         this.bridge.addAccessory((Accessory) new AbstractZSwitch.ZOnOffSwitch(6, "1234"));

@@ -43,36 +43,36 @@ public class SrpHandler {
             return step2((PairSetupRequest.Stage2Request) request);
         }
 
-        return (HttpResponse) new HttpResponses.NotFoundResponse();
+        return new HttpResponses.NotFoundResponse();
     }
 
     private HttpResponse step1() throws Exception {
         if (this.session.getState() != HomekitSRP6ServerSession.State.INIT) {
             logger.error("Session is not in state INIT when receiving step1");
-            return (HttpResponse) new HttpResponses.ConflictResponse();
+            return new HttpResponses.ConflictResponse();
         }
 
         SRP6VerifierGenerator verifierGenerator = new SRP6VerifierGenerator(this.config);
         verifierGenerator.setXRoutine((XRoutine) new XRoutineWithUserIdentity());
-        BigInteger verifier = verifierGenerator.generateVerifier(this.salt, "Pair-Setup", this.pin);
+        BigInteger verifier = verifierGenerator.generateVerifier(this.salt, IDENTIFIER, this.pin);
 
         TypeLengthValueUtils.Encoder encoder = TypeLengthValueUtils.getEncoder();
         encoder.add(PairingManager.MessageType.STATE, (short) 2);
         encoder.add(PairingManager.MessageType.SALT, this.salt);
-        encoder.add(PairingManager.MessageType.PUBLIC_KEY, this.session.step1("Pair-Setup", this.salt, verifier));
-        return (HttpResponse) new HttpResponses.PairingResponse(encoder.toByteArray());
+        encoder.add(PairingManager.MessageType.PUBLIC_KEY, this.session.step1(IDENTIFIER, this.salt, verifier));
+        return new HttpResponses.PairingResponse(encoder.toByteArray());
     }
 
     private HttpResponse step2(PairSetupRequest.Stage2Request request) throws Exception {
         if (this.session.getState() != HomekitSRP6ServerSession.State.STEP_1) {
             logger.error("Session is not in state Stage 1 when receiving step2");
-            return (HttpResponse) new HttpResponses.ConflictResponse();
+            return new HttpResponses.ConflictResponse();
         }
         BigInteger m2 = this.session.step2(request.getA(), request.getM1());
         TypeLengthValueUtils.Encoder encoder = TypeLengthValueUtils.getEncoder();
         encoder.add(PairingManager.MessageType.STATE, (short) 4);
         encoder.add(PairingManager.MessageType.PROOF, m2);
-        return (HttpResponse) new HttpResponses.PairingResponse(encoder.toByteArray());
+        return new HttpResponses.PairingResponse(encoder.toByteArray());
     }
 
     public byte[] getK() {

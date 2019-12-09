@@ -28,30 +28,30 @@ public class NettyHttpServer {
     private static final int MAX_POST = 1000000;
 
     public static final String HTTP_HANDLER_NAME = "http";
+    private final ChannelGroup allChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
-    private final ChannelGroup allChannels = (ChannelGroup) new DefaultChannelGroup(
-            (EventExecutor) GlobalEventExecutor.INSTANCE);
 
     private final int port;
     private final int nThreads;
     private NettyHttpServer service = null;
 
     public NettyHttpServer(int port, int nThreads) {
-        bossGroup = (EventLoopGroup) new NioEventLoopGroup();
-        workerGroup = (EventLoopGroup) new NioEventLoopGroup();
+        this.bossGroup = new NioEventLoopGroup();
+        this.workerGroup = new NioEventLoopGroup();
         this.port = port;
         this.nThreads = nThreads;
     }
 
     public CompletableFuture<Integer> create(HomekitConnectionFactory connectionFactory) {
         final CompletableFuture<Integer> portFuture = new CompletableFuture<>();
-        ServerBootstrap b = new ServerBootstrap();
-        ((ServerBootstrap) ((ServerBootstrap) ((ServerBootstrap) b.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel.class)).handler((ChannelHandler) new LoggingHandler(LogLevel.INFO)))
-                        .childHandler((ChannelHandler) new ServerInitializer(connectionFactory, allChannels, nThreads))
-                        .option(ChannelOption.SO_BACKLOG, Integer.valueOf(128))).childOption(ChannelOption.SO_KEEPALIVE,
-                                Boolean.valueOf(true));
+        ServerBootstrap b = new ServerBootstrap()
+                .group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .handler(new LoggingHandler(LogLevel.INFO))
+                .childHandler(new ServerInitializer(connectionFactory, allChannels, nThreads))
+                .option(ChannelOption.SO_BACKLOG, Integer.valueOf(128))
+                .childOption(ChannelOption.SO_KEEPALIVE, true);
         final ChannelFuture bindFuture = b.bind(port);
         bindFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
             public void operationComplete(Future<? super Void> future) throws Exception {
@@ -62,8 +62,7 @@ public class NettyHttpServer {
                         logger.info("Bound homekit listener to " + socketAddress.toString());
                         portFuture.complete(Integer.valueOf(((InetSocketAddress) socketAddress).getPort()));
                     } else {
-                        throw new RuntimeException(
-                                "Unknown socket address type: " + socketAddress.getClass().getName());
+                        throw new RuntimeException("Unknown socket address type: " + socketAddress.getClass().getName());
                     }
                 } catch (Exception e) {
                     portFuture.completeExceptionally(e);

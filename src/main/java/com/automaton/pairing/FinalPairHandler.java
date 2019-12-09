@@ -2,8 +2,6 @@ package com.automaton.pairing;
 
 import java.nio.charset.StandardCharsets;
 
-import org.bouncycastle.crypto.DerivationParameters;
-import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
 import org.bouncycastle.crypto.params.HKDFParameters;
@@ -24,9 +22,8 @@ class FinalPairHandler {
     }
 
     public HttpResponse handle(PairSetupRequest req) throws Exception {
-        HKDFBytesGenerator hkdf = new HKDFBytesGenerator((Digest) new SHA512Digest());
-        hkdf.init((DerivationParameters) new HKDFParameters(this.k,
-                "Pair-Setup-Encrypt-Salt".getBytes(StandardCharsets.UTF_8),
+        HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA512Digest());
+        hkdf.init(new HKDFParameters(this.k, "Pair-Setup-Encrypt-Salt".getBytes(StandardCharsets.UTF_8),
                 "Pair-Setup-Encrypt-Info".getBytes(StandardCharsets.UTF_8)));
         byte[] okm = this.hkdf_enc_key = new byte[32];
         hkdf.generateBytes(okm, 0, 32);
@@ -46,9 +43,8 @@ class FinalPairHandler {
     }
 
     private HttpResponse createUser(byte[] username, byte[] ltpk, byte[] proof) throws Exception {
-        HKDFBytesGenerator hkdf = new HKDFBytesGenerator((Digest) new SHA512Digest());
-        hkdf.init((DerivationParameters) new HKDFParameters(this.k,
-                "Pair-Setup-Controller-Sign-Salt".getBytes(StandardCharsets.UTF_8),
+        HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA512Digest());
+        hkdf.init(new HKDFParameters(this.k, "Pair-Setup-Controller-Sign-Salt".getBytes(StandardCharsets.UTF_8),
                 "Pair-Setup-Controller-Sign-Info".getBytes(StandardCharsets.UTF_8)));
         byte[] okm = new byte[32];
         hkdf.generateBytes(okm, 0, 32);
@@ -64,9 +60,8 @@ class FinalPairHandler {
     }
 
     private HttpResponse createResponse() throws Exception {
-        HKDFBytesGenerator hkdf = new HKDFBytesGenerator((Digest) new SHA512Digest());
-        hkdf.init((DerivationParameters) new HKDFParameters(this.k,
-                "Pair-Setup-Accessory-Sign-Salt".getBytes(StandardCharsets.UTF_8),
+        HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA512Digest());
+        hkdf.init(new HKDFParameters(this.k, "Pair-Setup-Accessory-Sign-Salt".getBytes(StandardCharsets.UTF_8),
                 "Pair-Setup-Accessory-Sign-Info".getBytes(StandardCharsets.UTF_8)));
         byte[] okm = new byte[32];
         hkdf.generateBytes(okm, 0, 32);

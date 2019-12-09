@@ -55,10 +55,10 @@ public class TypeLengthValueUtils {
     }
 
     public static final class DecodeResult {
-        private final Map<Short, byte[]> result = (Map) new HashMap<>();
+        private final Map<Short, byte[]> result = new HashMap<>();
 
         public byte getByte(PairingManager.MessageType type) {
-            return ((byte[]) this.result.get(Short.valueOf(type.getKey())))[0];
+            return this.result.get(Short.valueOf(type.getKey()))[0];
         }
 
         public BigInteger getBigInt(PairingManager.MessageType type) {
@@ -75,7 +75,7 @@ public class TypeLengthValueUtils {
         }
 
         public int getLength(PairingManager.MessageType type) {
-            return ((byte[]) this.result.get(Short.valueOf(type.getKey()))).length;
+            return this.result.get(Short.valueOf(type.getKey())).length;
         }
 
         private void add(short type, byte[] bytes) {

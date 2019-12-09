@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 
 public class PairVerificationManager {
     private static final Logger logger = LoggerFactory.getLogger(PairVerificationManager.class);
+
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     public static final FileBasedDB PAIR_VERIFICATION_DB = new FileBasedDB("pairing-db");
     private final HomekitRegistry registry;
@@ -77,7 +78,7 @@ public class PairVerificationManager {
         case TWO:
             return stage2((PairVerificationRequest.Stage2Request) request);
         }
-        return (HttpResponse) new HttpResponses.NotFoundResponse();
+        return new HttpResponses.NotFoundResponse();
     }
 
     private HttpResponse stage1(PairVerificationRequest.Stage1Request request) throws Exception {
@@ -124,7 +125,7 @@ public class PairVerificationManager {
         encoder.add(PairingManager.MessageType.PUBLIC_KEY, data.publicKey);
 
         write(data);
-        return (HttpResponse) new HttpResponses.PairingResponse(encoder.toByteArray());
+        return new HttpResponses.PairingResponse(encoder.toByteArray());
     }
 
     private EncriptionData getEncriptionData() throws IOException {
@@ -161,12 +162,12 @@ public class PairVerificationManager {
         if ((new EdsaVerifier(clientLtpk)).verify(material, clientSignature)) {
             encoder.add(PairingManager.MessageType.STATE, (short) 4);
             logger.debug("Completed pair verification for " + this.registry.getLabel());
-            return (HttpResponse) new HttpResponses.UpgradeResponse(encoder.toByteArray(),
+            return new HttpResponses.UpgradeResponse(encoder.toByteArray(),
                     createKey(data, "Control-Write-Encryption-Key"), createKey(data, "Control-Read-Encryption-Key"));
         }
         encoder.add(PairingManager.MessageType.ERROR, (short) 4);
         logger.warn("Invalid signature. Could not pair " + this.registry.getLabel());
-        return (HttpResponse) new HttpResponses.OkResponse(encoder.toByteArray());
+        return new HttpResponses.OkResponse(encoder.toByteArray());
     }
 
     private byte[] createKey(EncriptionData data, String info) {

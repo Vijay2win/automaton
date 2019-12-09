@@ -13,17 +13,22 @@ import com.google.common.base.Charsets;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 
+/**
+ * Poor man DB to store the local states on restarts.
+ * 
+ * TODO use SQLLite?
+ */
 public class FileBasedDB {
     private static final Logger logger = LoggerFactory.getLogger(FileBasedDB.class);
 
-    public static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(1);
     public static final String DB_FILE_LOCATION = AutomatonConfiguration.getString("db.file.location", "/tmp/vj_hub");
+    public static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(1);
 
     private final AtomicBoolean dirtyCache = new AtomicBoolean(false);
 
     private volatile File dataFile;
     public final String namespace;
-    public final ConcurrentHashMap<String, byte[]> rows = (ConcurrentHashMap) new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<String, byte[]> rows = new ConcurrentHashMap<>();
 
     public FileBasedDB(String namespace) {
         this.namespace = namespace;

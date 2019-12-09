@@ -18,15 +18,15 @@ class GarageDoorDevice implements GarageDoor {
     public final String devicePlatform;
     public final String deviceType;
     public final String name;
+    private final GarageDoorHub hub;
+
     public volatile DoorState state;
 
     private CharacteristicCallback targetDoorStateCallback;
     private CharacteristicCallback obstructionCallback;
     private CharacteristicCallback callback;
 
-    private GarageDoorHub hub;
-
-    public GarageDoorDevice(String serialNumber, String deviceFamily, String devicePlatform, String deviceType,
+    private GarageDoorDevice(String serialNumber, String deviceFamily, String devicePlatform, String deviceType,
             String name, DoorState state, GarageDoorHub hub) {
         this.serialNumber = serialNumber;
         this.deviceFamily = deviceFamily;
@@ -80,7 +80,7 @@ class GarageDoorDevice implements GarageDoor {
 
     @Override
     public CompletableFuture<DoorState> getCurrentDoorState() {
-        hub.updateState(this);
+        this.state = hub.state(this);
         return CompletableFuture.completedFuture(state);
     }
 

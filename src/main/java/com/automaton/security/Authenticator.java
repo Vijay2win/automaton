@@ -7,12 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.automaton.HomekitServer;
+import com.automaton.server.AutomatonConfiguration;
 import com.automaton.server.FileBasedDB;
 
 public class Authenticator {
     private static final Logger logger = LoggerFactory.getLogger(Authenticator.class);
 
-    private static final String PIN = "000-00-001";
+    private static final String PIN = AutomatonConfiguration.getString("automaton.hub.pairing.pin", "000-00-001");
     private static final FileBasedDB AUTH_INFO_DB = new FileBasedDB("auth-info");
     public static final Authenticator INSTANCE = new Authenticator();
 
@@ -28,11 +29,11 @@ public class Authenticator {
         } catch (Throwable th) {
             throw new IOError(th);
         }
-        logger.info("The PIN for pairing is {}", "000-00-001");
+        logger.info("The PIN for pairing is {}", PIN);
     }
 
     public String getPin() {
-        return "000-00-001";
+        return PIN;
     }
 
     public String getMac() {

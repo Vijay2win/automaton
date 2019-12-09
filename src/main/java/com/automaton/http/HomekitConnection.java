@@ -94,7 +94,7 @@ public class HomekitConnection {
                     System.arraycopy(response, offset, plaintext, 0, length);
                 }
                 offset += length;
-                baos.write((new ChachaAlgorithm(true, this.writeKey, nonce)).encode(plaintext, lengthBytes));
+                baos.write(new ChachaAlgorithm(true, this.writeKey, nonce).encode(plaintext, lengthBytes));
             }
             return baos.toByteArray();
         }
@@ -109,7 +109,7 @@ public class HomekitConnection {
                 .putShort((short) (msg.length - 16)).array();
         try {
             byte[] nonce = Pack.longToLittleEndian(this.inboundBinaryMessageCount++);
-            return (new ChachaAlgorithm(false, this.readKey, nonce)).decode(mac, additionalData, ciphertext);
+            return new ChachaAlgorithm(false, this.readKey, nonce).decode(mac, additionalData, ciphertext);
         } catch (IOException e) {
             throw new IOError(e);
         }

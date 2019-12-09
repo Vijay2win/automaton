@@ -15,13 +15,13 @@ abstract class PairSetupRequest {
         TypeLengthValueUtils.DecodeResult d = TypeLengthValueUtils.decode(content);
         short stage = (short) d.getByte(PairingManager.MessageType.STATE);
         switch (stage) {
-        case 1:
+        case VALUE_STAGE_1:
             return new Stage1Request();
 
-        case 3:
+        case VALUE_STAGE_2:
             return new Stage2Request(d);
 
-        case 5:
+        case VALUE_STAGE_3:
             return new Stage3Request(d);
         }
 

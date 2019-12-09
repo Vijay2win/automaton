@@ -1,12 +1,12 @@
 package com.automaton.myq;
 
+import java.io.IOError;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MediaType;
 
-import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,15 +19,19 @@ import com.sun.jersey.api.client.WebResource.Builder;
 public class GarageDoorHub {
     private static final Logger logger = LoggerFactory.getLogger(GarageDoorHub.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static final String DEFAULT_APP_ID_KEY = "MyQApplicationId";
+    private static final String SECURITY_TOKEN_KEY = "SecurityToken";
+
     private static final String WEBSITE = "https://api.myqdevice.com/api/v5";
     private static final String DEFAULT_APP_ID = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu";
 
     private final Client client = Client.create();
     private final String userName;
     private final String password;
-
-    private String sercurityToken;
     private String accountId;
+
+    private volatile String sercurityToken;
 
     public GarageDoorHub(String username, String password) {
         this.userName = username;
@@ -40,22 +44,28 @@ public class GarageDoorHub {
         return getAllStatus();
     }
 
-    private String getSecurityToken() throws IOException {
-        WebResource resource = client.resource(WEBSITE).path("login");
-        ClientResponse resp = headers(resource).post(ClientResponse.class,
-                MAPPER.writeValueAsString(new HashMap<String, String>() {
-                    {
-                        put("Username", userName);
-                        put("Password", password);
-                    }
-                }));
-        return toMap(resp).get("SecurityToken").toString();
+    private String getSecurityToken() {
+        try {
+            WebResource resource = client.resource(WEBSITE).path("login");
+            ClientResponse resp = resource.type(MediaType.APPLICATION_JSON)
+                    .header(DEFAULT_APP_ID_KEY, DEFAULT_APP_ID)
+                    .post(ClientResponse.class,
+                    MAPPER.writeValueAsString(new HashMap<String, String>() {
+                        {
+                            put("Username", userName);
+                            put("Password", password);
+                        }
+                    }));
+            return toMap(resp).get(SECURITY_TOKEN_KEY).toString();
+        } catch (IOException wtf) {
+            throw new IOError(wtf);
+        }
     }
 
-    private String getAccountID() throws JsonProcessingException, IOException {
+    private String getAccountID() {
         WebResource resource = client.resource(WEBSITE).path("My").queryParam("expand", "account");
         ClientResponse resp = headers(resource).get(ClientResponse.class);
-        return (String) ((Map) toMap(resp).get("Account")).get("Id");
+        return ((Map<?, ?>) toMap(resp).get("Account")).get("Id").toString();
     }
 
     private Map<?, ?> toMap(ClientResponse resp) {
@@ -70,7 +80,7 @@ public class GarageDoorHub {
             }
         } catch (Throwable e) {
             // TODO may be re-throw?
-            logger.error("issue in response, ", e);
+            logger.error("issue in response, security token, {} &  accountID {}", this.sercurityToken, this.accountId, e);
         }
 
         // Default response
@@ -79,17 +89,20 @@ public class GarageDoorHub {
 
     private Builder headers(WebResource resource) {
         Builder builder = resource.getRequestBuilder().type(MediaType.APPLICATION_JSON);
-        return builder.header("MyQApplicationId", DEFAULT_APP_ID)
-                .header("SecurityToken", sercurityToken);
+        return builder.header(DEFAULT_APP_ID_KEY, DEFAULT_APP_ID)
+                .header(SECURITY_TOKEN_KEY, sercurityToken);
     }
 
-    public List<GarageDoorDevice> getAllStatus() throws JsonProcessingException, IOException {
+    public List<GarageDoorDevice> getAllStatus() {
         WebResource resource = client.resource(WEBSITE).path("Accounts").path(accountId).path("Devices");
         ClientResponse resp = headers(resource).get(ClientResponse.class);
         
-        Map response = toMap(resp);
+        Map<?, ?> response = toMap(resp);
         if (!response.containsKey("items")) {
-            logger.error("No devices found in the response...");
+            
+            logger.error("No devices found in the response, re athenticating to make sure.");
+            this.sercurityToken = getSecurityToken();
+            this.accountId = getAccountID();
             return new ArrayList<>();
         }
 
@@ -101,25 +114,24 @@ public class GarageDoorHub {
                 .collect(Collectors.toList());
     }
 
-    public void updateState(GarageDoorDevice device) {
+    public DoorState state(GarageDoorDevice device) {
         try {
             for (GarageDoorDevice d : getAllStatus()) {
                 if (device.getSerialNumber().equals(d.getSerialNumber())) {
-                    device.state = d.state;
-                    logger.info("now checking status for {} and status {}", device.serialNumber, device.state);
+                    logger.info("now checking status for {} and status {}", d.serialNumber, d.state);
+                    return d.state;
                 }
             }
         } catch (Throwable th) {
             logger.info("Error in parsing the status, ", th);
-            try {
-                this.sercurityToken = getSecurityToken();
-            } catch (IOException e) {
-                // ignore
-            }
         }
+        return DoorState.STOPPED;
     }
 
     public void open(GarageDoorDevice device) {
+        this.sercurityToken = getSecurityToken();
+        this.accountId = getAccountID();
+
         WebResource resource = client.resource(WEBSITE).path("Accounts").path(accountId).path("Devices")
                 .path(device.serialNumber).path("actions");
         ClientResponse resp = headers(resource).put(ClientResponse.class, new HashMap<String, String>() {

@@ -15,12 +15,12 @@ import com.google.common.collect.Sets;
 public abstract class AbstractZSwitch {
     protected static final Logger logger = LoggerFactory.getLogger(AbstractZSwitch.class);
 
-    private final int id;
+    private static final String DEFAULT_MODEL = "on-off-switch";
+    private static final String DEFAULT_MANUFACTURER = "VJ, Inc.";
 
+    private final int id;
     private final String serial;
     private final String label;
-    private final String model = "on-off-switch";
-    private final String manufacturer = "VJ, Inc.";
 
     protected Set<CharacteristicCallback> subscribeCallback = new HashSet<>();
     public volatile boolean powerState = false;
@@ -44,11 +44,11 @@ public abstract class AbstractZSwitch {
     }
 
     public String getModel() {
-        return "on-off-switch";
+        return DEFAULT_MODEL;
     }
 
     public String getManufacturer() {
-        return "VJ, Inc.";
+        return DEFAULT_MANUFACTURER;
     }
 
     public void identify() {
@@ -67,7 +67,8 @@ public abstract class AbstractZSwitch {
     }
 
     public void subscribe(CharacteristicCallback callback) {
-        this.subscribeCallback.add(callback);
+        if (callback != null)
+            this.subscribeCallback.add(callback);
     }
 
     public void unsubscribe() {

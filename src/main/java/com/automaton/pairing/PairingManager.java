@@ -53,7 +53,7 @@ public class PairingManager {
             logger.debug("Entering second stage of pair for " + this.registry.getLabel());
             if (this.srpHandler == null) {
                 logger.warn("Received unexpected stage 2 request for " + this.registry.getLabel());
-                return (HttpResponse) new HttpResponses.UnauthorizedResponse();
+                return new HttpResponses.UnauthorizedResponse();
             }
 
             try {
@@ -67,16 +67,16 @@ public class PairingManager {
             logger.debug("Entering third stage of pair for " + this.registry.getLabel());
             if (this.srpHandler == null) {
                 logger.warn("Received unexpected stage 3 request for " + this.registry.getLabel());
-                return (HttpResponse) new HttpResponses.UnauthorizedResponse();
+                return new HttpResponses.UnauthorizedResponse();
             }
             handler = new FinalPairHandler(this.srpHandler.getK(), this.advertiser);
             try {
                 return handler.handle(req);
             } catch (Throwable e) {
                 logger.error("Exception while finalizing pairing", e);
-                return (HttpResponse) new HttpResponses.UnauthorizedResponse();
+                return new HttpResponses.UnauthorizedResponse();
             }
         }
-        return (HttpResponse) new HttpResponses.NotFoundResponse();
+        return new HttpResponses.NotFoundResponse();
     }
 }

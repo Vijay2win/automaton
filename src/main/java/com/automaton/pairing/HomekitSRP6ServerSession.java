@@ -6,36 +6,26 @@ import com.nimbusds.srp6.*;
 
 public class HomekitSRP6ServerSession extends SRP6Session {
     public enum State {
-        INIT,
-
-        STEP_1,
-
-        STEP_2;
+        INIT, STEP_1, STEP_2;
     }
 
     private boolean noSuchUserIdentity = false;
-
     private BigInteger v = null;
-
     private BigInteger b = null;
 
     private State state;
 
     public HomekitSRP6ServerSession(SRP6CryptoParams config, int timeout) {
         super(timeout);
-
         if (config == null) {
             throw new IllegalArgumentException("The SRP-6a crypto parameters must not be null");
         }
         this.config = config;
-
         this.digest = config.getMessageDigestInstance();
-
         if (this.digest == null) {
             throw new IllegalArgumentException("Unsupported hash algorithm 'H': " + config.H);
         }
         this.state = State.INIT;
-
         updateLastActivityTime();
     }
 
@@ -120,7 +110,6 @@ public class HomekitSRP6ServerSession extends SRP6Session {
         }
 
         this.S = SRP6Routines.computeSessionKey(this.config.N, this.v, this.u, A, this.b);
-
         if (this.clientEvidenceRoutine != null) {
 
             SRP6ClientEvidenceContext ctx = new SRP6ClientEvidenceContext(this.userID, this.s, A, this.B, this.S);
@@ -137,14 +126,11 @@ public class HomekitSRP6ServerSession extends SRP6Session {
         this.state = State.STEP_2;
 
         if (this.serverEvidenceRoutine != null) {
-
             SRP6ServerEvidenceContext ctx = new SRP6ServerEvidenceContext(A, M1, this.S);
-
             this.M2 = this.serverEvidenceRoutine.computeServerEvidence(this.config, ctx);
         }
 
         updateLastActivityTime();
-
         return this.M2;
     }
 

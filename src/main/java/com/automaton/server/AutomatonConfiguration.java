@@ -8,6 +8,9 @@ import java.util.Properties;
 
 import com.google.common.collect.Lists;
 
+/**
+ * Simple hierarchical properties reader, generalized across the code base
+ */
 public class AutomatonConfiguration {
     private static final Properties PROPERTIES = new Properties();
     static {
@@ -22,6 +25,10 @@ public class AutomatonConfiguration {
     }
 
     public static String getString(String name, String defaultVal) {
+        String value = System.getProperty(name);
+        if (value != null)
+            return value;
+
         return PROPERTIES.getProperty(name, defaultVal);
     }
 
@@ -44,5 +51,12 @@ public class AutomatonConfiguration {
         if (existing == null)
             return defaultVal;
         return Lists.newArrayList(existing.split(","));
+    }
+
+    public static boolean getBoolean(String name, boolean defaultVal) {
+        String existing = PROPERTIES.getProperty(name);
+        if (existing == null)
+            return defaultVal;
+        return Boolean.getBoolean(existing);
     }
 }

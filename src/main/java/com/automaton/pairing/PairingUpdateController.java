@@ -34,6 +34,6 @@ public class PairingUpdateController {
         } else {
             throw new RuntimeException("Unrecognized method: " + method);
         }
-        return (HttpResponse) new HttpResponses.PairingResponse(new byte[] { 6, 1, 2 });
+        return new HttpResponses.PairingResponse(new byte[] { 6, 1, 2 });
     }
 }

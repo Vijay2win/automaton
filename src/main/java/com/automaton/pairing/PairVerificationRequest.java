@@ -8,10 +8,10 @@ abstract class PairVerificationRequest {
         TypeLengthValueUtils.DecodeResult d = TypeLengthValueUtils.decode(content);
         short stage = (short) d.getByte(PairingManager.MessageType.STATE);
         switch (stage) {
-        case 1:
+        case VALUE_STAGE_1:
             return new Stage1Request(d);
 
-        case 3:
+        case VALUE_STAGE_2:
             return new Stage2Request(d);
         }
 
