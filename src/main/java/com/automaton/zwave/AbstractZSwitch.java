@@ -67,7 +67,7 @@ public abstract class AbstractZSwitch {
     }
 
     public void subscribe(CharacteristicCallback callback) {
-        if (callback != null)
+        if (callback != null && subscribeCallback != null)
             this.subscribeCallback.add(callback);
     }
 

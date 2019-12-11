@@ -134,7 +134,7 @@ class GarageDoorDevice implements GarageDoor {
         String serialNumber = raw.get("serial_number").toString();
         String deviceFamily = raw.get("device_family").toString();
         String devicePlatform = raw.get("device_platform").toString();
-        String name = raw.get("name").toString();
+        String name = raw.get("name").toString() + " Main";
         String deviceType = raw.get("device_type").toString();
         Object rawState = ((Map) raw.get("state")).get("door_state");
         DoorState state = DoorState.STOPPED;
