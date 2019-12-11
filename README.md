@@ -96,10 +96,14 @@ Start the server
 
 ### Troubleshooting
 
-I tried my best to log as useful information as I see it, if there are bugs please try fixing it.
+I tried my best to log useful information as I see, if there are bugs please try fixing it.
 
 You can always tail the logs to understand what's going on.
 
 ```
 tail -f /var/log/automaton.log 
 ```
+
+## TODO
+I did not manage to OSS the camera model plugin, eventually, I will
+
