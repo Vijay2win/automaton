@@ -33,28 +33,28 @@ public class AutomatonConfiguration {
     }
 
     public static int getInt(String name, int defaultVal) {
-        String existing = PROPERTIES.getProperty(name);
+        String existing = getString(name, null);
         if (existing == null)
             return defaultVal;
         return Integer.parseInt(existing);
     }
 
     public static long getLong(String name, long defaultVal) {
-        String existing = PROPERTIES.getProperty(name);
+        String existing = getString(name, null);
         if (existing == null)
             return defaultVal;
         return Long.parseLong(existing);
     }
 
     public static List<String> getStringAsList(String name, List<String> defaultVal) {
-        String existing = PROPERTIES.getProperty(name);
+        String existing = getString(name, null);
         if (existing == null)
             return defaultVal;
         return Lists.newArrayList(existing.split(","));
     }
 
     public static boolean getBoolean(String name, boolean defaultVal) {
-        String existing = PROPERTIES.getProperty(name);
+        String existing = getString(name, null);
         if (existing == null)
             return defaultVal;
         return Boolean.getBoolean(existing);

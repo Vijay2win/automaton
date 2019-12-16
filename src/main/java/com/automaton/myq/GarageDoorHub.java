@@ -25,6 +25,7 @@ public class GarageDoorHub {
 
     private static final String WEBSITE = "https://api.myqdevice.com/api/v5";
     private static final String DEFAULT_APP_ID = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu";
+    private static final int RETRIES = 3;
 
     private final Client client = Client.create();
     private final String userName;
@@ -114,16 +115,19 @@ public class GarageDoorHub {
                 .collect(Collectors.toList());
     }
 
-    public DoorState state(GarageDoorDevice device) {
-        try {
-            for (GarageDoorDevice d : getAllStatus()) {
-                if (device.getSerialNumber().equals(d.getSerialNumber())) {
-                    logger.info("now checking status for {} and status {}", d.serialNumber, d.state);
-                    return d.state;
-                }
+    public DoorState state(GarageDoorDevice dev) {
+        for (int i = 0; i < RETRIES; i++) {
+            List<GarageDoorDevice> devices = getAllStatus();
+            if (devices.isEmpty())
+                continue;
+
+            Optional<DoorState> states = devices.stream()
+                    .filter(d -> dev.getSerialNumber().equals(d.getSerialNumber()))
+                    .findAny().map(d -> d.state);
+            if (states.isPresent()) {
+                logger.info("now checking status for {} and status {}", dev.getSerialNumber(), states.get());
+                return states.get();
             }
-        } catch (Throwable th) {
-            logger.info("Error in parsing the status, ", th);
         }
         return DoorState.STOPPED;
     }

@@ -19,8 +19,8 @@ I Built this software and tested with the following hardware
 
 - RPi
 - Aeotec Z-Stick Gen5
-- All compatible ZWave switches, dimmers, and outlets
-- MyQ door openers
+- Compatible ZWave switches, dimmers, and outlets
+- MyQ Garage door openers
 
 ### Installation Instruction:
 
@@ -85,7 +85,7 @@ Create directories and make sure they have the right permission
 
 ```
 sudo mkdir -p /var/opt/automaton/auth-info/
-sudo chown -R 777 /var/log /var/opt/automaton/auth-info/ 
+sudo chmod -R 777 /var/log /var/opt/automaton/auth-info/ 
 ```
 
 Start the server

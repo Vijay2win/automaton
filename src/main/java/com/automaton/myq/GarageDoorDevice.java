@@ -137,7 +137,7 @@ class GarageDoorDevice implements GarageDoor {
         String name = raw.get("name").toString() + " Main";
         String deviceType = raw.get("device_type").toString();
         Object rawState = ((Map) raw.get("state")).get("door_state");
-        DoorState state = DoorState.STOPPED;
+        DoorState state = DoorState.CLOSED;
         if (rawState != null) {
             logger.info("Got the door status to be {}", rawState);
             state = DoorState.valueOf(rawState.toString().toUpperCase());
