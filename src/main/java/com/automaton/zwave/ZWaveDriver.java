@@ -11,6 +11,7 @@ import com.automaton.characteristics.CharacteristicCallback;
 import com.automaton.server.AutomatonConfiguration;
 import com.automaton.server.DeviceDriver;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.oberasoftware.base.event.EventHandler;
 import com.oberasoftware.home.zwave.api.LocalZwaveSession;
 import com.oberasoftware.home.zwave.api.ZWaveSession;
 import com.oberasoftware.home.zwave.api.actions.*;
@@ -19,6 +20,7 @@ import com.oberasoftware.home.zwave.api.messages.types.CommandClass;
 import com.oberasoftware.home.zwave.api.messages.types.GenericDeviceClass;
 import com.oberasoftware.home.zwave.core.NodeAvailability;
 import com.oberasoftware.home.zwave.core.ZWaveNode;
+import com.oberasoftware.home.zwave.eventhandlers.events.SwitchMultiLevelGetActionConverter;
 
 public class ZWaveDriver implements DeviceDriver {
     protected static final Logger logger = LoggerFactory.getLogger(ZWaveDriver.class);
@@ -94,6 +96,7 @@ public class ZWaveDriver implements DeviceDriver {
                         sw.brightness = 99;
                     }
                     session.doAction(new SwitchAction(node.getNodeId(), 0, SwitchAction.STATE.ON, sw.brightness));
+                    session.doAction(new SwitchMultiLevelGetAction(node.getNodeId()));
                 } catch (Throwable e) {
                     logger.error("Exception in changing the state. node with id {}",
                             Integer.valueOf(node.getNodeId()), e);

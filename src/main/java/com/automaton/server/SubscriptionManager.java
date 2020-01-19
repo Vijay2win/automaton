@@ -20,21 +20,21 @@ public class SubscriptionManager {
     public synchronized void addSubscription(int aid, int iid, EventableCharacteristic characteristic,
             HomekitConnection connection) {
         synchronized (this) {
-            if (!this.subscriptions.containsKey(characteristic)) {
-                this.subscriptions.putIfAbsent(characteristic, newSet());
+            if (!subscriptions.containsKey(characteristic)) {
+                subscriptions.putIfAbsent(characteristic, newSet());
             }
-            ((Set<HomekitConnection>) this.subscriptions.get(characteristic)).add(connection);
-            if (((Set) this.subscriptions.get(characteristic)).size() == 1) {
+            this.subscriptions.get(characteristic).add(connection);
+            if (subscriptions.get(characteristic).size() == 1) {
                 characteristic.subscribe(() -> publish(aid, iid, characteristic));
             }
 
-            if (!this.reverse.containsKey(connection))
-                this.reverse.putIfAbsent(connection, newSet());
-            ((Set<EventableCharacteristic>) this.reverse.get(connection)).add(characteristic);
+            if (!reverse.containsKey(connection))
+                reverse.putIfAbsent(connection, newSet());
+            reverse.get(connection).add(characteristic);
             LOGGER.info("Added subscription to " + characteristic.getClass() + " for " + connection.hashCode());
         }
         try {
-            connection.outOfBand((new EventController()).getMessage(aid, iid, characteristic));
+            connection.outOfBand(new EventController().getMessage(aid, iid, characteristic));
         } catch (Exception e) {
             LOGGER.error("Could not send initial state in response to subscribe event", e);
         }
@@ -55,11 +55,11 @@ public class SubscriptionManager {
     }
 
     public synchronized void removeConnection(HomekitConnection connection) {
-        Set<EventableCharacteristic> characteristics = this.reverse.remove(connection);
+        Set<EventableCharacteristic> characteristics = reverse.remove(connection);
         if (characteristics == null)
             return;
         for (EventableCharacteristic characteristic : characteristics) {
-            Set<HomekitConnection> characteristicSubscriptions = this.subscriptions.get(characteristic);
+            Set<HomekitConnection> characteristicSubscriptions = subscriptions.get(characteristic);
             characteristicSubscriptions.remove(connection);
             if (characteristicSubscriptions.isEmpty()) {
                 characteristic.unsubscribe();
@@ -75,7 +75,7 @@ public class SubscriptionManager {
         try {
             HttpResponse message = (new EventController()).getMessage(accessoryId, iid, changed);
             LOGGER.info("Publishing changes for " + accessoryId);
-            for (HomekitConnection connection : this.subscriptions.get(changed))
+            for (HomekitConnection connection : subscriptions.get(changed))
                 connection.outOfBand(message);
         } catch (Exception e) {
             LOGGER.error("Failed to create new event message", e);

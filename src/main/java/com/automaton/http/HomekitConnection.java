@@ -21,7 +21,6 @@ public class HomekitConnection {
     private static final Logger LOGGER = LoggerFactory.getLogger(HomekitConnection.class);
 
     private final LengthPrefixedProcessor binaryProcessor = new LengthPrefixedProcessor();
-
     private final HttpSession httpSession;
     private int inboundBinaryMessageCount = 0;
     private int outboundBinaryMessageCount = 0;
@@ -38,8 +37,10 @@ public class HomekitConnection {
         this.subscriptions = subscriptions;
     }
 
-    public synchronized HttpResponse handleRequest(FullHttpRequest request) throws IOException {
-        return doHandleRequest(request);
+    public HttpResponse handleRequest(FullHttpRequest request) throws IOException {
+        synchronized (binaryProcessor) {
+            return doHandleRequest(request);
+        }
     }
 
     private HttpResponse doHandleRequest(FullHttpRequest request) throws IOException {
@@ -58,7 +59,7 @@ public class HomekitConnection {
         if (!this.isUpgraded) {
             throw new RuntimeException("Cannot handle binary before connection is upgraded");
         }
-        Collection<byte[]> res = this.binaryProcessor.handle(ciphertext);
+        Collection<byte[]> res = binaryProcessor.handle(ciphertext);
         if (res.isEmpty()) {
             return new byte[0];
         }

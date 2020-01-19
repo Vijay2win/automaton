@@ -52,7 +52,7 @@ public abstract class AbstractZSwitch {
     }
 
     public void identify() {
-        System.out.println("Identifying " + this.label);
+        logger.info("Identifying {}", this.label);
     }
 
     public CompletableFuture<Boolean> getPowerState() {

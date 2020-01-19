@@ -15,6 +15,11 @@
 			<version>1.7.10</version>
 		</dependency>
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.10</version>
+		</dependency>
+		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
 			<version>4.1.42.Final</version>
@@ -66,14 +71,15 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-			<version>1.1.7</version>
-		</dependency>
-		<dependency>
 			<groupId>com.oberasoftware</groupId>
 			<artifactId>obera_zwave</artifactId>
 			<version>1.0-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -90,11 +96,11 @@
 			<artifactId>jersey-client</artifactId>
 			<version>1.8</version>
 		</dependency>
-<dependency>
-  <groupId>com.fasterxml.jackson.jaxrs</groupId>
-  <artifactId>jackson-jaxrs-json-provider</artifactId>
-  <version>2.3.0</version>
-</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.jaxrs</groupId>
+			<artifactId>jackson-jaxrs-json-provider</artifactId>
+			<version>2.3.0</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
