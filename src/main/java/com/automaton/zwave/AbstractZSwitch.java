@@ -3,14 +3,13 @@ package com.automaton.zwave;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.automaton.accessories.Light;
 import com.automaton.characteristics.CharacteristicCallback;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Sets;
 
 public abstract class AbstractZSwitch {
     protected static final Logger logger = LoggerFactory.getLogger(AbstractZSwitch.class);
@@ -67,16 +66,13 @@ public abstract class AbstractZSwitch {
     }
 
     public void subscribe(CharacteristicCallback callback) {
-        if (callback != null && subscribeCallback != null)
+        if (callback != null)
             this.subscribeCallback.add(callback);
     }
 
     public void unsubscribe() {
-        this.subscribeCallback = Sets.filter(this.subscribeCallback, new Predicate<CharacteristicCallback>() {
-            public boolean apply(CharacteristicCallback input) {
-                return !input.isRemovable();
-            }
-        });
+        this.subscribeCallback = subscribeCallback.stream().filter(input -> !input.isRemovable())
+                .collect(Collectors.toSet());
     }
 
     public static class ZOnOffSwitch extends AbstractZSwitch implements Light {

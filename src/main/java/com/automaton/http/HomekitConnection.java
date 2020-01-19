@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.automaton.HomekitRegistry;
+import com.automaton.http.HttpResponses.UpgradeResponse;
 import com.automaton.security.ChachaAlgorithm;
 import com.automaton.security.JmdnsHomekitAdvertiser;
 import com.automaton.server.SubscriptionManager;
@@ -38,42 +39,31 @@ public class HomekitConnection {
     }
 
     public HttpResponse handleRequest(FullHttpRequest request) throws IOException {
-        synchronized (binaryProcessor) {
-            return doHandleRequest(request);
-        }
+        return doHandleRequest(request);
     }
 
     private HttpResponse doHandleRequest(FullHttpRequest request) throws IOException {
-        HttpResponse response = this.isUpgraded ? this.httpSession.handleAuthenticatedRequest(request)
-                : this.httpSession.handleRequest(request);
-        if (response instanceof HttpResponses.UpgradeResponse) {
-            this.isUpgraded = true;
-            this.readKey = ((HttpResponses.UpgradeResponse) response).getReadKey().array();
-            this.writeKey = ((HttpResponses.UpgradeResponse) response).getWriteKey().array();
+        HttpResponse response = isUpgraded ? httpSession.handleAuthenticatedRequest(request)
+                : httpSession.handleRequest(request);
+        if (response instanceof UpgradeResponse) {
+            isUpgraded = true;
+            readKey = ((UpgradeResponse) response).getReadKey().array();
+            writeKey = ((UpgradeResponse) response).getWriteKey().array();
         }
-        LOGGER.info(response.getStatusCode() + " " + request.getUri());
+        LOGGER.info(response.getStatusCode() + " " + request.uri());
         return response;
     }
 
-    public byte[] decryptRequest(byte[] ciphertext) {
-        if (!this.isUpgraded) {
-            throw new RuntimeException("Cannot handle binary before connection is upgraded");
-        }
-        Collection<byte[]> res = binaryProcessor.handle(ciphertext);
-        if (res.isEmpty()) {
-            return new byte[0];
-        }
+    public byte[] decryptRequest(byte[] ciphertext) throws IOException {
+        if (!this.isUpgraded)
+            throw new IOException("Cannot handle binary before connection is upgraded");
+
+        Collection<byte[]> response = binaryProcessor.handle(ciphertext);
         try (ByteArrayOutputStream decrypted = new ByteArrayOutputStream()) {
-            res.stream().map(msg -> decrypt(msg)).forEach(bytes -> {
-                try {
-                    decrypted.write(bytes);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            for (byte[] msg : response)
+                decrypted.write(decrypt(msg));
+
             return decrypted.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -81,13 +71,13 @@ public class HomekitConnection {
         int offset = 0;
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             while (offset < response.length) {
-                byte[] plaintext;
                 short length = (short) Math.min(response.length - offset, 1024);
                 byte[] lengthBytes = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(length).array();
                 baos.write(lengthBytes);
 
                 byte[] nonce = Pack.longToLittleEndian(this.outboundBinaryMessageCount++);
 
+                byte[] plaintext;
                 if (response.length == length) {
                     plaintext = response;
                 } else {
@@ -101,26 +91,22 @@ public class HomekitConnection {
         }
     }
 
-    private byte[] decrypt(byte[] msg) {
+    private byte[] decrypt(byte[] msg) throws IOException {
         byte[] mac = new byte[16];
         byte[] ciphertext = new byte[msg.length - 16];
         System.arraycopy(msg, 0, ciphertext, 0, msg.length - 16);
         System.arraycopy(msg, msg.length - 16, mac, 0, 16);
         byte[] additionalData = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN)
                 .putShort((short) (msg.length - 16)).array();
-        try {
-            byte[] nonce = Pack.longToLittleEndian(this.inboundBinaryMessageCount++);
-            return new ChachaAlgorithm(false, this.readKey, nonce).decode(mac, additionalData, ciphertext);
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
+        byte[] nonce = Pack.longToLittleEndian(this.inboundBinaryMessageCount++);
+        return new ChachaAlgorithm(false, this.readKey, nonce).decode(mac, additionalData, ciphertext);
     }
 
     public void close() {
-        this.subscriptions.removeConnection(this);
+        subscriptions.removeConnection(this);
     }
 
     public void outOfBand(HttpResponse message) {
-        this.messageCallback.accept(message);
+        messageCallback.accept(message);
     }
 }

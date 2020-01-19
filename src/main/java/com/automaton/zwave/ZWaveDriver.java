@@ -11,16 +11,15 @@ import com.automaton.characteristics.CharacteristicCallback;
 import com.automaton.server.AutomatonConfiguration;
 import com.automaton.server.DeviceDriver;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.oberasoftware.base.event.EventHandler;
 import com.oberasoftware.home.zwave.api.LocalZwaveSession;
 import com.oberasoftware.home.zwave.api.ZWaveSession;
 import com.oberasoftware.home.zwave.api.actions.*;
+import com.oberasoftware.home.zwave.api.actions.SwitchAction.STATE;
 import com.oberasoftware.home.zwave.api.events.NodeIdentifyEvent;
 import com.oberasoftware.home.zwave.api.messages.types.CommandClass;
 import com.oberasoftware.home.zwave.api.messages.types.GenericDeviceClass;
 import com.oberasoftware.home.zwave.core.NodeAvailability;
 import com.oberasoftware.home.zwave.core.ZWaveNode;
-import com.oberasoftware.home.zwave.eventhandlers.events.SwitchMultiLevelGetActionConverter;
 
 public class ZWaveDriver implements DeviceDriver {
     protected static final Logger logger = LoggerFactory.getLogger(ZWaveDriver.class);
@@ -44,23 +43,22 @@ public class ZWaveDriver implements DeviceDriver {
 
         for (ZWaveNode node : this.session.getDeviceManager().getNodes()) {
             initialize(node);
+            logger.info("node properties {}", node.getNodeProperties());
+            String name = AutomatonConfiguration.getString("device.name." + node.getNodeId(), "z-wave," + node.getNodeId());
 
-            int id = node.getNodeId();
-            String name = AutomatonConfiguration.getString("device.name." + id, "z-wave," + node.getNodeId());
-            Optional<NodeIdentifyEvent> nodeInfo = node.getNodeInformation();
+            Optional<NodeIdentifyEvent> info = node.getNodeInformation();
+            if (!info.isPresent())
+                return;
 
-            if (nodeInfo.isPresent() && (nodeInfo.get())
-                    .getGenericDeviceClass() == GenericDeviceClass.MULTILEVEL_SWITCH) {
+            if (info.get().getGenericDeviceClass() == GenericDeviceClass.MULTILEVEL_SWITCH) {
                 ZDimmableSwitch dimmable = new ZDimmableSwitch(node.getNodeId(), name);
                 dimmable.subscribe(callback(dimmable, this.session));
                 this.bridge.addAccessory(dimmable);
-            } else if (nodeInfo.isPresent() && (nodeInfo.get())
-                    .getGenericDeviceClass() == GenericDeviceClass.BINARY_SWITCH) {
+            } else if (info.get().getGenericDeviceClass() == GenericDeviceClass.BINARY_SWITCH) {
                 AbstractZSwitch.ZOnOffSwitch ooSwitch = new AbstractZSwitch.ZOnOffSwitch(node.getNodeId(), name);
                 ooSwitch.subscribe(callback(ooSwitch, this.session));
                 this.bridge.addAccessory(ooSwitch);
             }
-            logger.info("node properties {}", node.getNodeProperties());
         }
     }
 
@@ -70,6 +68,7 @@ public class ZWaveDriver implements DeviceDriver {
             this.session.getDeviceManager().registerCommandClass(nodeId, CommandClass.ALL);
             this.session.doAction(new DeviceManufactorAction(nodeId));
             this.session.doAction(new IdentifyNodeAction(nodeId));
+            this.session.doAction(new SwitchMultiLevelGetAction(nodeId));
             this.session.getDeviceManager().setNodeAvailability(nodeId, NodeAvailability.AVAILABLE);
 
             logger.info("Node.toString() -> {}, hence sleeping for 1 Second.", node);
@@ -87,7 +86,7 @@ public class ZWaveDriver implements DeviceDriver {
                 ZWaveNode node = session.getDeviceManager().getNode(sw.getId());
                 try {
                     if (!sw.powerState) {
-                        session.doAction(new SwitchAction(node.getNodeId(), 0, SwitchAction.STATE.ON, 0));
+                        session.doAction(new SwitchAction(node.getNodeId(), 0, STATE.ON, 0));
                         return;
                     }
                     if (sw.brightness == 0)
@@ -95,11 +94,10 @@ public class ZWaveDriver implements DeviceDriver {
                     if (sw.brightness == 100) {
                         sw.brightness = 99;
                     }
-                    session.doAction(new SwitchAction(node.getNodeId(), 0, SwitchAction.STATE.ON, sw.brightness));
+                    session.doAction(new SwitchAction(node.getNodeId(), 0, STATE.ON, sw.brightness));
                     session.doAction(new SwitchMultiLevelGetAction(node.getNodeId()));
                 } catch (Throwable e) {
-                    logger.error("Exception in changing the state. node with id {}",
-                            Integer.valueOf(node.getNodeId()), e);
+                    logger.error("Exception in changing the state. node with id {}", node.getNodeId(), e);
                 }
             }
 
@@ -114,13 +112,14 @@ public class ZWaveDriver implements DeviceDriver {
             public void changed() {
                 try {
                     if (!sw.powerState) {
-                        session.doAction(new SwitchAction(sw.getId(), 0, SwitchAction.STATE.OFF, 0));
+                        session.doAction(new SwitchAction(sw.getId(), 0, STATE.OFF, 0));
                         return;
                     }
-                    if (sw.powerState && sw.brightness == 0.0D) {
-                        sw.brightness = Double.valueOf(50.0D);
-                    }
-                    session.doAction(new SwitchAction(sw.getId(), 0, SwitchAction.STATE.ON, sw.brightness.intValue()));
+
+                    if (sw.powerState && sw.brightness == 0D)
+                        sw.brightness = 99D;
+
+                    session.doAction(new SwitchAction(sw.getId(), 0, STATE.ON, sw.brightness.intValue()));
                 } catch (Throwable e) {
                     logger.error("Exception in changing the state.", e);
                 }
@@ -136,7 +135,7 @@ public class ZWaveDriver implements DeviceDriver {
         return new CharacteristicCallback() {
             public void changed() {
                 try {
-                    session.doAction(new SwitchAction(sw.getId(), sw.powerState ? SwitchAction.STATE.ON : SwitchAction.STATE.OFF));
+                    session.doAction(new SwitchAction(sw.getId(), sw.powerState ? STATE.ON : STATE.OFF));
                 } catch (Throwable th) {
                     logger.error("Exception in changing the state.", th);
                 }
