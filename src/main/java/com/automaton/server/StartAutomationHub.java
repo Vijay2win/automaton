@@ -39,7 +39,7 @@ public class StartAutomationHub {
     private void loadPlugins() {
         this.drivers.add(ENABLE_ZWAVE ? new ZWaveDriver(bridge): new MockDriver(bridge));
         if (ENABLE_MYQ)
-            this.drivers.add(new GarageDoorDriver(bridge));        
+            this.drivers.add(new GarageDoorDriver(bridge));
     }
 
     private void init() throws Exception {

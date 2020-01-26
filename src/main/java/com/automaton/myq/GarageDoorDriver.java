@@ -14,9 +14,9 @@ import com.automaton.server.DeviceDriver;
 public class GarageDoorDriver implements DeviceDriver {
     protected static final Logger logger = LoggerFactory.getLogger(GarageDoorDriver.class);
     
-    private static final String user = AutomatonConfiguration.getString("automaton.myq.user_name", "vijay2win@yahoo.com");
-    private static final String pass = AutomatonConfiguration.getString("automaton.myq.password", "xxxxx");
-    private final GarageDoorHub door = new GarageDoorHub(user, pass);
+    private static final String USER_NAME = AutomatonConfiguration.getString("automaton.myq.user_name", "vijay2win@yahoo.com");
+    private static final String PASSWORD = AutomatonConfiguration.getString("automaton.myq.password", "xxxxx");
+    private final GarageDoorHub door = new GarageDoorHub(USER_NAME, PASSWORD);
     
     private final HomekitRoot bridge;
 

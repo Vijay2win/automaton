@@ -57,6 +57,6 @@ public class AutomatonConfiguration {
         String existing = getString(name, null);
         if (existing == null)
             return defaultVal;
-        return Boolean.getBoolean(existing);
+        return Boolean.parseBoolean(existing);
     }
 }
